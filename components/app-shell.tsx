@@ -1,12 +1,15 @@
 'use client'
 
-import { useState } from 'react'
+import { createContext, useContext, useState } from 'react'
 import { Home, Compass, Package, Wallet, User } from 'lucide-react'
 import { HomeScreen } from '@/components/screens/home-screen'
 import { AdventureScreen } from '@/components/screens/adventure-screen'
 import { InventoryScreen } from '@/components/screens/inventory-screen'
 import { WalletScreen } from '@/components/screens/wallet-screen'
 import { ProfileScreen } from '@/components/screens/profile-screen'
+import { GameProvider } from '@/lib/store'
+import { ToastProvider } from '@/components/ui/toast'
+import { LevelUpOverlay, AchievementOverlay } from '@/components/overlays/celebrations'
 
 const nav = [
   { id: 'home', label: 'Home', icon: Home, Screen: HomeScreen },
@@ -16,45 +19,62 @@ const nav = [
   { id: 'profile', label: 'Profile', icon: User, Screen: ProfileScreen },
 ] as const
 
+type TabId = (typeof nav)[number]['id']
+
+const NavContext = createContext<(id: TabId) => void>(() => {})
+export function useNavigate() {
+  return useContext(NavContext)
+}
+
 export function AppShell() {
-  const [active, setActive] = useState<(typeof nav)[number]['id']>('home')
+  const [active, setActive] = useState<TabId>('home')
   const ActiveScreen = nav.find((n) => n.id === active)!.Screen
 
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-[420px] flex-col bg-background md:my-6 md:min-h-0 md:h-[860px] md:rounded-3xl md:border md:border-border md:shadow-2xl md:overflow-hidden">
-      <main className="no-scrollbar flex-1 overflow-y-auto pt-[env(safe-area-inset-top)]">
-        <ActiveScreen />
-      </main>
+    <GameProvider>
+      <NavContext.Provider value={setActive}>
+        <div className="relative mx-auto flex min-h-dvh w-full max-w-[420px] flex-col overflow-hidden bg-background md:my-6 md:min-h-0 md:h-[860px] md:rounded-3xl md:border md:border-border md:shadow-2xl">
+          <ToastProvider>
+            <main className="no-scrollbar flex-1 overflow-y-auto pt-[env(safe-area-inset-top)]">
+              <ActiveScreen />
+            </main>
 
-      {/* Bottom navigation */}
-      <nav className="sticky bottom-0 flex items-center justify-around border-t border-border bg-background/90 px-2 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur-md">
-        {nav.map((item) => {
-          const Icon = item.icon
-          const isActive = item.id === active
-          return (
-            <button
-              key={item.id}
-              onClick={() => setActive(item.id)}
-              className={`group relative flex flex-1 flex-col items-center gap-1 py-1 transition-colors duration-150 ${
-                isActive ? 'text-foreground' : 'text-muted-foreground hover:text-foreground/70'
-              }`}
-              aria-current={isActive ? 'page' : undefined}
-            >
-              <Icon
-                className="h-5 w-5 transition-transform duration-150 group-active:scale-90"
-                strokeWidth={isActive ? 2.25 : 1.75}
-              />
-              <span className="text-[10px] font-medium">{item.label}</span>
-              <span
-                className={`absolute -top-2 h-1 w-1 rounded-full bg-foreground transition-opacity duration-150 ${
-                  isActive ? 'opacity-100' : 'opacity-0'
-                }`}
-                aria-hidden="true"
-              />
-            </button>
-          )
-        })}
-      </nav>
-    </div>
+            {/* Bottom navigation */}
+            <nav className="sticky bottom-0 flex items-center justify-around border-t border-border bg-background/90 px-2 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur-md">
+              {nav.map((item) => {
+                const Icon = item.icon
+                const isActive = item.id === active
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => setActive(item.id)}
+                    className={`group relative flex flex-1 flex-col items-center gap-1 py-1 transition-colors duration-150 ${
+                      isActive ? 'text-foreground' : 'text-muted-foreground hover:text-foreground/70'
+                    }`}
+                    aria-current={isActive ? 'page' : undefined}
+                  >
+                    <Icon
+                      className="h-5 w-5 transition-transform duration-150 group-active:scale-90"
+                      strokeWidth={isActive ? 2.25 : 1.75}
+                    />
+                    <span className="text-[10px] font-medium">{item.label}</span>
+                    <span
+                      className={`absolute -top-2 h-1 w-1 rounded-full bg-foreground transition-opacity duration-150 ${
+                        isActive ? 'opacity-100' : 'opacity-0'
+                      }`}
+                      aria-hidden="true"
+                    />
+                  </button>
+                )
+              })}
+            </nav>
+
+            {/* Global celebration overlays */}
+            <LevelUpOverlay />
+            <AchievementOverlay />
+          </ToastProvider>
+        </div>
+      </NavContext.Provider>
+    </GameProvider>
   )
 }

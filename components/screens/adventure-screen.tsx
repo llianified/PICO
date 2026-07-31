@@ -1,87 +1,30 @@
 'use client'
 
 import { useState } from 'react'
-import { Check, ChevronLeft, ChevronRight, HelpCircle, Play } from 'lucide-react'
+import { Check, ChevronLeft, ChevronRight, HelpCircle, Loader2, Play } from 'lucide-react'
 import { Progress, SegmentedProgress, Tag } from '@/components/primitives'
 import { PixelSprite } from '@/components/pixel-sprite'
+import { ActionButton } from '@/components/ui/action-button'
+import { RewardOverlay } from '@/components/overlays/celebrations'
+import { EmptyState } from '@/components/ui/empty-state'
+import { useToast } from '@/components/ui/toast'
+import { useGame, type Quest, type QuestCategory } from '@/lib/store'
+import type { SpriteName } from '@/components/pixel-sprite'
 
-const tabs = ['Story', 'Daily', 'Weekly', 'Event', 'Side'] as const
-
-type Quest = {
-  id: string
-  title: string
-  subtitle: string
-  xp: string
-  xpValue: number
-  tag: 'SIDE' | 'DAILY' | 'WEEKLY' | 'EVENT' | 'STORY'
-  state: 'done' | 'todo' | 'video'
-  progress?: { current: number; total: number }
-  detail: string
-}
-
-const quests: Quest[] = [
-  {
-    id: 'survey',
-    title: 'Complete Daily Survey',
-    subtitle: 'Help the villagers',
-    xp: '+500 XP',
-    xpValue: 500,
-    tag: 'SIDE',
-    state: 'todo',
-    detail: 'Help the villagers by sharing your opinion.',
-  },
-  {
-    id: 'login',
-    title: 'Login to PICO',
-    subtitle: 'Maintain your journey',
-    xp: '+100 XP',
-    xpValue: 100,
-    tag: 'DAILY',
-    state: 'done',
-    detail: 'Return each day to keep your streak alive.',
-  },
-  {
-    id: 'sponsor',
-    title: 'Watch Sponsor Video',
-    subtitle: 'Support the kingdom',
-    xp: '+50 XP',
-    xpValue: 50,
-    tag: 'SIDE',
-    state: 'video',
-    detail: 'Watch a short message from a partner to earn XP.',
-  },
-  {
-    id: 'three',
-    title: 'Complete 3 Quests',
-    subtitle: 'Prove your dedication',
-    xp: '+300 XP',
-    xpValue: 300,
-    tag: 'DAILY',
-    state: 'todo',
-    progress: { current: 2, total: 3 },
-    detail: 'Finish three quests today to earn a bonus reward.',
-  },
-  {
-    id: 'invite',
-    title: 'Invite a Friend',
-    subtitle: 'Bring new explorer',
-    xp: '+50 XP',
-    xpValue: 50,
-    tag: 'SIDE',
-    state: 'todo',
-    progress: { current: 0, total: 1 },
-    detail: 'Invite a friend to join PICO and both of you earn XP.',
-  },
-]
+const tabs: QuestCategory[] = ['Story', 'Daily', 'Weekly', 'Event', 'Side']
 
 function QuestRow({ quest, onOpen }: { quest: Quest; onOpen: () => void }) {
+  const done = quest.state === 'done'
   return (
     <button
       onClick={onOpen}
-      className="flex w-full items-start gap-3 rounded-lg border border-border bg-card p-4 text-left transition-colors duration-100 hover:border-ring"
+      className={`flex w-full items-start gap-3 rounded-lg border border-border bg-card p-4 text-left transition-all duration-100 hover:border-ring active:scale-[0.99] ${
+        done ? 'opacity-60' : ''
+      }`}
     >
       <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-[5px] border border-border">
         {quest.state === 'done' && <Check className="h-3.5 w-3.5" />}
+        {quest.state === 'active' && <Loader2 className="h-3 w-3 animate-spin" />}
         {quest.state === 'video' && <Play className="h-3 w-3 fill-current" />}
       </span>
       <div className="min-w-0 flex-1">
@@ -95,7 +38,9 @@ function QuestRow({ quest, onOpen }: { quest: Quest; onOpen: () => void }) {
             <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
           )}
         </div>
-        <p className="mt-0.5 text-xs text-muted-foreground">{quest.subtitle}</p>
+        <p className="mt-0.5 text-xs text-muted-foreground">
+          {quest.state === 'active' ? 'In progress\u2026' : quest.subtitle}
+        </p>
         {quest.progress && (
           <Progress
             value={(quest.progress.current / quest.progress.total) * 100}
@@ -111,13 +56,47 @@ function QuestRow({ quest, onOpen }: { quest: Quest; onOpen: () => void }) {
   )
 }
 
-function QuestDetail({ quest, onBack }: { quest: Quest; onBack: () => void }) {
+function QuestDetail({ questId, onBack }: { questId: string; onBack: () => void }) {
+  const { quests, startQuest, completeQuest } = useGame()
+  const { toast } = useToast()
+  const quest = quests.find((q) => q.id === questId)!
+
+  const [status, setStatus] = useState<'idle' | 'loading' | 'success'>('idle')
+  const [reward, setReward] = useState<{ sprite: SpriteName; label: string }[] | null>(null)
+
+  const isDone = quest.state === 'done'
+  const isActive = quest.state === 'active'
+
+  async function handleStart() {
+    setStatus('loading')
+    try {
+      await startQuest(quest.id)
+      setStatus('idle')
+      toast({ title: 'Quest started', description: quest.title, variant: 'success' })
+    } catch {
+      setStatus('idle')
+      toast({ title: 'Could not start quest', variant: 'error' })
+    }
+  }
+
+  async function handleComplete() {
+    setStatus('loading')
+    try {
+      const res = await completeQuest(quest.id)
+      setStatus('success')
+      setReward(res.items)
+    } catch {
+      setStatus('idle')
+      toast({ title: 'Quest unavailable', description: 'Try again shortly.', variant: 'error' })
+    }
+  }
+
   return (
     <div className="flex min-h-full flex-col px-6 pb-6 pt-2">
       <header className="mb-6 flex items-center">
         <button
           onClick={onBack}
-          className="-ml-2 flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground"
+          className="-ml-2 flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground active:scale-90"
           aria-label="Back"
         >
           <ChevronLeft className="h-5 w-5" />
@@ -151,40 +130,91 @@ function QuestDetail({ quest, onBack }: { quest: Quest; onBack: () => void }) {
           <div className="flex items-center justify-between">
             <span className="text-xs text-muted-foreground">Progress</span>
             <span className="font-mono text-xs text-muted-foreground tnum">
-              {quest.progress ? `${quest.progress.current} / ${quest.progress.total}` : '0 / 1'}
+              {quest.progress
+                ? `${quest.progress.current} / ${quest.progress.total}`
+                : isDone
+                  ? '1 / 1'
+                  : '0 / 1'}
             </span>
           </div>
           <SegmentedProgress
             value={
-              quest.progress ? (quest.progress.current / quest.progress.total) * 100 : 0
+              quest.progress
+                ? (quest.progress.current / quest.progress.total) * 100
+                : isDone
+                  ? 100
+                  : 0
             }
             segments={16}
           />
         </div>
       </div>
 
-      <button className="group mt-auto flex items-center justify-center gap-1 rounded-lg bg-primary px-5 py-4 text-[15px] font-medium text-primary-foreground transition-transform duration-100 active:scale-[0.99]">
-        Start Quest
-        <ChevronRight className="h-5 w-5 transition-transform duration-150 group-hover:translate-x-0.5" />
-      </button>
+      {isDone ? (
+        <div className="mt-auto flex items-center justify-center gap-2 rounded-lg border border-border bg-card px-5 py-4 text-[15px] font-medium text-muted-foreground">
+          <Check className="h-5 w-5" />
+          Completed
+        </div>
+      ) : isActive ? (
+        <ActionButton
+          status={status}
+          loadingLabel="Completing"
+          successLabel="Completed"
+          onClick={handleComplete}
+          className="group mt-auto flex items-center justify-center gap-1 rounded-lg bg-primary px-5 py-4 text-[15px] font-medium text-primary-foreground"
+        >
+          Complete Quest
+          <Check className="h-5 w-5" />
+        </ActionButton>
+      ) : (
+        <ActionButton
+          status={status}
+          loadingLabel="Starting"
+          onClick={handleStart}
+          className="group mt-auto flex items-center justify-center gap-1 rounded-lg bg-primary px-5 py-4 text-[15px] font-medium text-primary-foreground"
+        >
+          Start Quest
+          <ChevronRight className="h-5 w-5 transition-transform duration-150 group-hover:translate-x-0.5" />
+        </ActionButton>
+      )}
+
+      <RewardOverlay
+        open={reward !== null}
+        onClose={() => {
+          setReward(null)
+          onBack()
+        }}
+        title="Quest Complete"
+        items={reward ?? []}
+      />
     </div>
   )
 }
 
 export function AdventureScreen() {
-  const [active, setActive] = useState<(typeof tabs)[number]>('Daily')
-  const [openQuest, setOpenQuest] = useState<Quest | null>(null)
+  const { quests } = useGame()
+  const { toast } = useToast()
+  const [active, setActive] = useState<QuestCategory>('Daily')
+  const [openQuestId, setOpenQuestId] = useState<string | null>(null)
 
-  if (openQuest) {
-    return <QuestDetail quest={openQuest} onBack={() => setOpenQuest(null)} />
+  if (openQuestId) {
+    return <QuestDetail questId={openQuestId} onBack={() => setOpenQuestId(null)} />
   }
+
+  const filtered = quests.filter((q) => q.category === active)
 
   return (
     <div className="flex flex-col gap-8 px-6 pb-6 pt-2">
       <header className="flex items-center justify-between">
         <h1 className="text-3xl font-medium tracking-tight">Adventure</h1>
         <button
-          className="flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground"
+          onClick={() =>
+            toast({
+              title: 'How quests work',
+              description: 'Start a quest, complete the objective, then claim your XP reward.',
+            })
+          }
+          className="flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground active:scale-90"
           aria-label="Help"
         >
           <HelpCircle className="h-5 w-5" />
@@ -198,7 +228,7 @@ export function AdventureScreen() {
             key={t}
             onClick={() => setActive(t)}
             className={`relative shrink-0 pb-3 text-sm transition-colors ${
-              active === t ? 'font-medium text-foreground' : 'text-muted-foreground'
+              active === t ? 'font-medium text-foreground' : 'text-muted-foreground hover:text-foreground/70'
             }`}
           >
             {t}
@@ -210,9 +240,17 @@ export function AdventureScreen() {
       </div>
 
       <div className="flex flex-col gap-3">
-        {quests.map((q) => (
-          <QuestRow key={q.id} quest={q} onOpen={() => setOpenQuest(q)} />
-        ))}
+        {filtered.length === 0 ? (
+          <EmptyState
+            sprite="flag"
+            title={`No ${active.toLowerCase()} quests`}
+            description="Check back soon — new quests appear here regularly."
+          />
+        ) : (
+          filtered.map((q) => (
+            <QuestRow key={q.id} quest={q} onOpen={() => setOpenQuestId(q.id)} />
+          ))
+        )}
       </div>
     </div>
   )
