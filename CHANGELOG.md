@@ -57,15 +57,53 @@ merged remediation passes. Issue identifiers (`P0-1`, `P1-2`, …) refer to
   object are treated as a single-step objective (`0 / 1` until done, `1 / 1` after)
   instead of the previous magic 50% for the `active` state. Gameplay, rewards and the
   existing bar transition are unchanged.
+- P2-9 — The referral modal no longer claims a copy succeeded when it did not. `handleCopy`
+  now awaits a `copyText()` helper that guards on `navigator.clipboard?.writeText`, catches a
+  denied permission, falls back to `document.execCommand('copy')` for insecure origins, and
+  returns a boolean rather than throwing. On failure the modal shows an error toast and
+  returns before `setCopied(true)`, so the success toast and the checkmark are unreachable
+  unless text actually reached the clipboard.
+- P3-2 — Removed dead code and one unreachable fallback. The adventure screen's
+  `quest.survey?.length ? quest.survey : DEFAULT_SURVEY` implied quests could ship without a
+  survey and still render one, but every read was gated behind the same `length` check, so the
+  `DEFAULT_SURVEY` arm could never be taken; it is now `quest.survey ?? []`. Also dropped an
+  unused `ENERGY_MAX` import from the home screen. Behaviour is unchanged.
+- P3-5 — `InventoryItem.unlockedAt` is now a `number` (epoch ms) instead of a string frozen at
+  `'Just now'`, so an item found an hour ago no longer reads the same as one found a second
+  ago. `openChest` stamps `Date.now()`, and a new `UnlockedAtLabel` formats it at render time
+  with the shared `formatRelativeTime` in both the item grid and the detail sheet. The label
+  mirrors `TimeAgoDisplay` from P0-1 — filled in after mount, not during render — so it does
+  not reintroduce the P0-1 hydration mismatch, and a one-minute interval keeps it current.
 - P3-6 — Removed the non-null assertion from the `AppShell` screen lookup
   (`nav.find(...)!.Screen`), which would have thrown and taken down the React tree if `tab`
   ever held a value absent from `nav`. The lookup now falls back to the Home screen. Because
   `nav` is a non-empty `as const` tuple, the fallback needs no assertion of its own. All five
   tabs still resolve to their own screens, so navigation is unchanged in the normal case.
+- P3-11 — The achievement modal queue's timers are now cancellable and cleared on unmount, so
+  neither the 2.5s display timer nor the 300ms gap timer can fire against a dead tree. The gap
+  timer previously had no stored handle at all, making it uncancellable by construction; it now
+  has a dedicated `achievementGapTimeoutRef`, kept separate from `achievementTimeoutRef`
+  because that ref doubles as the "queue is draining" guard. An `achievementMountedRef` check
+  at the top of `processAchievementQueue` closes the window `clearTimeout` cannot cover — a
+  callback already dequeued and mid-flight. Queue ordering and the 2.5s / 300ms timings are
+  unchanged.
 
 ### Removed
 
-- Nothing.
+- P3-7 — Removed `ActionButton`'s redundant `onClick` prop, which duplicated `onAction` and was
+  resolved internally with `onAction ?? onClick`. The name was actively misleading: on a
+  component wrapping a `<button>` it read as the DOM handler, but it was swallowed and run
+  through the loading/success/error lifecycle instead, and passing both silently discarded one.
+  `onAction` survived because the prop is an async action whose promise drives the button's
+  state, not a click handler. The two `onClick` callers — the profile avatar and settings
+  sheets — were migrated. The lifecycle, `resetDelay`, `aria-busy` and the `type="submit"`
+  branch are untouched; this was an API change, not a behaviour change.
+- P3-2 — Deleted `components/ui/button.tsx`, which had no importer, along with the unrendered
+  `SkeletonCard` preset and `Skeleton`'s public export (now an internal block). Also removed
+  `DEFAULT_SURVEY` and leftover seed helpers from `lib/mock-data.ts`, including
+  `makeConsecutiveDays` — which P3-3 had left exported and unreferenced and explicitly deferred
+  here. `SkeletonRow` was deliberately kept despite having no consumer, since the store's
+  simulated `delay()` calls are where a skeleton belongs once a real backend lands.
 
 ## 2026-08-01
 
