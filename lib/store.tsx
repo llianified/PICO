@@ -21,8 +21,11 @@ import {
   initialQuests,
   initialRewardsFeed,
   initialTransactions,
+  LEVEL_XP_BASE,
   questCoinReward,
   questKeyReward,
+  reconcileQuestAvailability,
+  resetDailyQuests,
   toDayKey,
   type Achievement,
   type Avatar,
@@ -164,11 +167,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [level, setLevel] = useState(1)
   const [totalXp, setTotalXp] = useState(0)
   const [levelXp, setLevelXp] = useState(0)
-  const [levelXpNeeded, setLevelXpNeeded] = useState(200000)
+  const [levelXpNeeded, setLevelXpNeeded] = useState(LEVEL_XP_BASE)
 
   // Streak is derived from a mocked login history, never hardcoded.
   const [loginDates, setLoginDates] = useState<string[]>(initialLoginDates)
   const streak = useMemo(() => computeStreak(loginDates), [loginDates])
+
+  // The day key the daily quests were last reset for. When the calendar day
+  // rolls over, daily quests are restored to their fresh state.
+  const [dailyResetDay, setDailyResetDay] = useState<string>(() => toDayKey(new Date()))
+  const dailyResetDayRef = useRef(dailyResetDay)
+  dailyResetDayRef.current = dailyResetDay
 
   // Lifetime stats that back the profile screen.
   const [questsCompletedTotal, setQuestsCompletedTotal] = useState(0)
@@ -261,6 +270,47 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     recordDailyLogin()
   }, [recordDailyLogin])
+
+  // Auto-unlock Story quests as the player levels up. Runs whenever the level
+  // changes, flipping `available` on any Story quest whose level gate is met
+  // (completed quests are never re-locked) and announcing the unlock.
+  useEffect(() => {
+    setQuests((prev) => {
+      const next = reconcileQuestAvailability(prev, level)
+      if (next === prev) return prev
+      const newlyUnlocked = next.filter(
+        (q, i) => q.available && !prev[i].available && q.category === 'Story',
+      )
+      for (const q of newlyUnlocked) {
+        setTimeout(() => {
+          toast({
+            title: 'Story quest unlocked',
+            description: q.title,
+            variant: 'info',
+          })
+        }, 600)
+      }
+      return next
+    })
+  }, [level, toast])
+
+  // Daily quest reset. Once per minute we check whether the calendar day has
+  // rolled over; when it has, daily quests return to their fresh state while
+  // completed Story quests (and all other categories) are preserved.
+  useEffect(() => {
+    const id = setInterval(() => {
+      const today = toDayKey(new Date())
+      if (today === dailyResetDayRef.current) return
+      setDailyResetDay(today)
+      setQuests((prev) => resetDailyQuests(prev))
+      toast({
+        title: 'Daily quests refreshed',
+        description: 'A new day has begun — daily quests are back.',
+        variant: 'info',
+      })
+    }, 60_000)
+    return () => clearInterval(id)
+  }, [toast])
 
   // Spend energy and (re)start the regen timer if we dropped below the cap.
   const consumeEnergy = useCallback((amount: number) => {
