@@ -117,9 +117,11 @@ function QuestDetail({ quest, onBack }: { quest: Quest; onBack: () => void }) {
   const [hasAutoStarted, setHasAutoStarted] = useState(false)
   const [showReferralModal, setShowReferralModal] = useState(false)
 
-  // Auto-start quests with progress tracking (like checkin quests)
+  // Auto-start quests with progress tracking only for specific quest types
   useEffect(() => {
-    if (quest.state !== 'active' && quest.progress && !hasAutoStarted) {
+    // Don't auto-start login/invite quests - they have manual checkin flow
+    const skipAutoStart = ['login', 'invite'].includes(quest.id)
+    if (!skipAutoStart && quest.state !== 'active' && quest.progress && !hasAutoStarted) {
       startQuest(quest.id)
       setHasAutoStarted(true)
     }
