@@ -456,6 +456,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setQuests((prev) => prev.map((q) => (q.id === id ? { ...q, state: 'active' } : q)))
   }, [])
 
+  const setQuestProgress = useCallback((id: string, newProgress: number) => {
+    setQuests((prev) =>
+      prev.map((q) =>
+        q.id === id && q.progress
+          ? { ...q, progress: { ...q.progress, current: Math.min(newProgress, q.progress.total) } }
+          : q,
+      ),
+    )
+  }, [])
+
   const grantMoney = useCallback((reward: number, title: string) => {
     if (!reward) return
     setBalance((prev) => prev + reward)
@@ -711,6 +721,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       withdraw,
       connectPaymentMethod,
       startQuest,
+      setQuestProgress,
       completeQuest,
       openChest,
       equipItem,
@@ -770,6 +781,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       withdraw,
       connectPaymentMethod,
       startQuest,
+      setQuestProgress,
       completeQuest,
       openChest,
       equipItem,

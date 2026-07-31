@@ -138,6 +138,7 @@ export const initialQuests: Quest[] = [
     state: 'todo',
     detail: 'Return each day to keep your streak alive.',
     available: true,
+    progress: { current: 0, total: 1 },
   },
   {
     id: 'sponsor',

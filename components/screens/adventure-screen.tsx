@@ -109,7 +109,7 @@ function QuestSurvey({
 }
 
 function QuestDetail({ quest, onBack }: { quest: Quest; onBack: () => void }) {
-  const { startQuest, completeQuest, toast } = useStore()
+  const { startQuest, setQuestProgress, completeQuest, toast } = useStore()
   const [busy, setBusy] = useState(false)
   const [xpBurst, setXpBurst] = useState(false)
   const [answers, setAnswers] = useState<Record<string, string>>({})
@@ -269,25 +269,49 @@ function QuestDetail({ quest, onBack }: { quest: Quest; onBack: () => void }) {
           Quest Completed
         </div>
       ) : quest.state === 'active' ? (
-        <button
-          onClick={handleComplete}
-          disabled={busy || !surveyComplete}
-          aria-busy={busy}
-          className="group flex items-center justify-center gap-1.5 rounded-lg bg-primary px-5 py-4 text-[15px] font-medium text-primary-foreground transition-all duration-100 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {busy ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" /> Completing…
-            </>
-          ) : !surveyComplete ? (
-            'Answer all questions'
+        <>
+          {quest.progress && quest.progress.current < quest.progress.total ? (
+            <button
+              onClick={() => {
+                setQuestProgress(quest.id, quest.progress!.current + 1)
+              }}
+              disabled={busy}
+              aria-busy={busy}
+              className="group flex items-center justify-center gap-1.5 rounded-lg bg-primary px-5 py-4 text-[15px] font-medium text-primary-foreground transition-all duration-100 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {busy ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" /> Checking in…
+                </>
+              ) : (
+                <>
+                  Check In
+                  <Check className="h-5 w-5 transition-transform duration-150 group-hover:scale-110" />
+                </>
+              )}
+            </button>
           ) : (
-            <>
-              Complete Quest
-              <ChevronRight className="h-5 w-5 transition-transform duration-150 group-hover:translate-x-0.5" />
-            </>
+            <button
+              onClick={handleComplete}
+              disabled={busy || !surveyComplete}
+              aria-busy={busy}
+              className="group flex items-center justify-center gap-1.5 rounded-lg bg-primary px-5 py-4 text-[15px] font-medium text-primary-foreground transition-all duration-100 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {busy ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" /> Completing…
+                </>
+              ) : !surveyComplete ? (
+                'Answer all questions'
+              ) : (
+                <>
+                  Complete Quest
+                  <ChevronRight className="h-5 w-5 transition-transform duration-150 group-hover:translate-x-0.5" />
+                </>
+              )}
+            </button>
           )}
-        </button>
+        </>
       ) : (
         <button
           onClick={handleStart}
