@@ -255,6 +255,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [achievementEvent, setAchievementEvent] = useState<AchievementEvent>(null)
 
   const toastId = useRef(0)
+  const achievementQueueRef = useRef<NodeJS.Timeout | null>(null)
 
   const toast = useCallback((t: Omit<Toast, 'id'>) => {
     const id = ++toastId.current
@@ -284,18 +285,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   // Record today's login exactly once. Adding a new day grows "days active";
   // the streak recomputes automatically from the login history.
-  const recordDailyLogin = useCallback(() => {
+  useEffect(() => {
     const today = toDayKey(new Date())
     setLoginDates((prev) => {
       if (prev.includes(today)) return prev
       setDaysActive((d) => d + 1)
       return [today, ...prev]
     })
-  }, [])
-
-  useEffect(() => {
-    recordDailyLogin()
-  }, [recordDailyLogin])
+  }, []) // Empty dependency - runs only once on mount
 
   // Auto-unlock Story quests as the player levels up. Runs whenever the level
   // changes, flipping `available` on any Story quest whose level gate is met
@@ -436,9 +433,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         const current = Math.min(a.total, a.current + amount)
         const unlocked = current >= a.total
         if (unlocked) {
-          setTimeout(() => {
+          // Clear any pending achievement notification and queue this one
+          if (achievementQueueRef.current) clearTimeout(achievementQueueRef.current)
+          achievementQueueRef.current = setTimeout(() => {
             setBadges((b) => b + 1)
             setAchievementEvent({ title: a.title, subtitle: 'Achievement unlocked' })
+            // Clear after showing so next achievement can display
+            setTimeout(() => {
+              setAchievementEvent(null)
+            }, 2500)
           }, 500)
         }
         return { ...a, current, unlocked }

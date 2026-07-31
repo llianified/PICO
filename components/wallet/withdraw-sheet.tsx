@@ -52,6 +52,12 @@ export function WithdrawSheet({ open, onClose }: { open: boolean; onClose: () =>
   }
 
   async function confirmWithdraw() {
+    // Final validation before submission to prevent race conditions
+    if (error) {
+      setServerError(error)
+      return
+    }
+
     setSubmitting(true)
     setServerError(null)
     try {
