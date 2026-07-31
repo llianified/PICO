@@ -3,7 +3,12 @@
 Checklist for every finding in [`PICO_PRODUCTION_AUDIT.md`](./PICO_PRODUCTION_AUDIT.md).
 Sequencing and rationale are in [`ROADMAP.md`](./ROADMAP.md).
 
-**14 of 35 fixed · 2 mitigated · 19 open.**
+**17 of 35 fixed · 2 mitigated · 16 open.**
+
+> **Reconciled 2026-08-01.** Five fixes had shipped without being ticked here — P2-9, P3-2,
+> P3-5, P3-7 and P3-11 — and the P2/P3 band headings carried counts their own checkboxes did
+> not support. Every box below was re-verified against the current tree; the band counts are
+> now derived from the boxes.
 
 Legend: `[x]` fixed · `[~]` mitigated (risk reduced, root cause needs a backend) ·
 `[ ]` open.
@@ -56,8 +61,8 @@ Log: [`PICO_P1_REMEDIATION.md`](./PICO_P1_REMEDIATION.md) · 3 of 6 fixed.
 
 ## P2
 
-Log: [`PICO_P2_REMEDIATION.md`](./PICO_P2_REMEDIATION.md) · 6 of 12 fixed — P2-10 and P2-11
-incidentally during the P0 pass; P2-2 and P2-3 addressed in recent commits.
+Log: [`PICO_P2_REMEDIATION.md`](./PICO_P2_REMEDIATION.md) · 5 of 12 fixed — P2-10 and P2-11
+incidentally during the P0 pass; P2-2, P2-3 and P2-9 addressed in recent commits.
 
 - [ ] **P2-1** — Quest reward preview omits coins that are actually granted
 - [x] **P2-2** — Key reward formula duplicated inline instead of using `questKeyReward()`
@@ -73,36 +78,59 @@ incidentally during the P0 pass; P2-2 and P2-3 addressed in recent commits.
   - ⚠️ The audit's suggested fix names `@radix-ui/react-dialog`, which is **no longer
     installed**. Re-decide the vehicle (`@base-ui/react` is present).
 - [ ] **P2-8** — `ReferralModal` is not a modal and duplicates dialog logic
-- [ ] **P2-9** — `navigator.clipboard` used without a fallback or error handling
+- [x] **P2-9** — `navigator.clipboard` used without a fallback or error handling
+  - `copyText()` guards the async API, falls back to `execCommand`, returns a boolean; the
+    success toast is now unreachable on a failed copy — commit `aae448d`
 - [x] **P2-10** — Achievement counters can display a claim state that overruns the total
   - Closed by P0-5: `badges` is now derived from `achievements`
 - [x] **P2-11** — Two parallel "time ago" implementations, one unused
   - Closed by P0-1: `TimeAgoDisplay` now calls the shared `formatRelativeTime`
 - [ ] **P2-12** — Per-item interval timers in the rewards feed
+  - Scope widened by the P3-5 fix: `UnlockedAtLabel` adds the same per-item interval to the
+    Inventory screen. One shared ticker must now cover both screens.
 
 ## P3
 
-Log: [`PICO_P3_REMEDIATION.md`](./PICO_P3_REMEDIATION.md) · 4 of 12 fixed — P3-3, P3-6 and 2 others.
+Log: [`PICO_P3_REMEDIATION.md`](./PICO_P3_REMEDIATION.md) · 6 of 12 fixed — P3-2, P3-3, P3-5,
+P3-6, P3-7 and P3-11.
 
 - [ ] **P3-1** — Unused dependencies shipped
   - ⚠️ Largely obsolete: six of the seven named packages are no longer installed. Only
     `class-variance-authority` remains. Verify before acting.
+  - Now a one-line prune: P3-2 deleted `components/ui/button.tsx`, which was that package's
+    only consumer.
 - [x] **P3-2** — Dead code (unused imports, unreferenced `button`/`Skeleton`, unreachable `DEFAULT_SURVEY` fallback)
-  - Refactored via commit `5f8ad7c`: removed unused DEFAULT_SURVEY and mock data functions; deprecated SkeletonCard
+  - Commit `5f8ad7c`: `button.tsx` deleted, `Skeleton` unexported and `SkeletonCard` removed,
+    `DEFAULT_SURVEY` replaced with `?? []`, unused mock helpers and the `ENERGY_MAX` import gone
+  - The `store.tsx` imports the audit suspected (`Avatar`, `formatRp`, `formatCompact`,
+    `avatars`) were re-checked and are all in fact used — nothing to prune there
+  - Residue, knowingly left: `SkeletonRow` is still exported and unreferenced, since no screen
+    has a loading state yet. Delete the file if the backend work does not adopt it.
 - [x] **P3-3** — `initialLoginDates = makeConsecutiveDays(0)` always returns `[]`
-  - Now the literal `[]` via commit `ec436aa`; `makeConsecutiveDays` left unused — part of P3-2
+  - Now the literal `[]` via commit `ec436aa`; `makeConsecutiveDays` was left unused and has
+    since been deleted by P3-2 (`5f8ad7c`)
 - [ ] **P3-4** — Hardcoded "Good Evening" greeting
   - Must resolve after mount, or it reintroduces P0-1
-- [ ] **P3-5** — `unlockedAt: 'Just now'` frozen as a string
+- [x] **P3-5** — `unlockedAt: 'Just now'` frozen as a string
+  - Field is now `number`, stamped `Date.now()` in `openChest`, formatted after mount by
+    `UnlockedAtLabel` via the shared `formatRelativeTime` — commit `1399020`
+  - Adds per-item timers on the Inventory screen; folded into P2-12 rather than solved twice
 - [x] **P3-6** — Non-null assertion on nav lookup (`nav.find(...)!.Screen`)
   - Falls back to `nav[0]` via commits `3cf3136` and `ec436aa`
-- [ ] **P3-7** — Redundant `onAction` / `onClick` prop aliases on `ActionButton`
+- [x] **P3-7** — Redundant `onAction` / `onClick` prop aliases on `ActionButton`
+  - `onClick` and the `handler = onAction ?? onClick` indirection removed; `AvatarSheet` and
+    `SettingsSheet` migrated to `onAction` — commit `4c9196e`
 - [ ] **P3-8** — `CountUp` cleanup writes `fromRef.current = to` on interrupted animations
 - [ ] **P3-9** — No Content-Security-Policy
   - Ship report-only first, then enforce
+  - The other baseline headers (nosniff, Referrer-Policy, X-Frame-Options,
+    Permissions-Policy) already exist in `next.config.mjs`; only the CSP is missing
 - [ ] **P3-10** — `userScalable: false` / `maximumScale: 1` blocks pinch-zoom
   - Depends on the Telegram decision (Phase 0)
-- [ ] **P3-11** — Achievement modal queue timers not cleared on unmount
+- [x] **P3-11** — Achievement modal queue timers not cleared on unmount
+  - The 300ms gap timer got its own `achievementGapTimeoutRef` — the original ref doubles as
+    the "queue is draining" flag and could not hold both — plus a mounted guard in
+    `processAchievementQueue` and a cleanup effect clearing both handles — commit `375d6ec`
 - [ ] **P3-12** — `md:h-[860px]` fixed desktop frame can clip content
 
 ## Accessibility
