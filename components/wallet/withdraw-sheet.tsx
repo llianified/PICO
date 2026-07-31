@@ -156,7 +156,8 @@ export function WithdrawSheet({ open, onClose }: { open: boolean; onClose: () =>
                     setAmount(String(balance))
                     setTouched(true)
                   }}
-                  className="flex-1 rounded-md border border-border bg-card py-2 font-mono text-xs transition-colors hover:border-ring tnum"
+                  disabled={balance < MIN_WITHDRAW}
+                  className="flex-1 rounded-md border border-border bg-card py-2 font-mono text-xs transition-colors hover:border-ring disabled:opacity-40 tnum"
                 >
                   Max
                 </button>
@@ -172,6 +173,10 @@ export function WithdrawSheet({ open, onClose }: { open: boolean; onClose: () =>
                     <AlertCircle className="h-3.5 w-3.5" />
                     {error}
                   </motion.p>
+                ) : balance < MIN_WITHDRAW ? (
+                  <p className="text-xs text-muted-foreground">
+                    {formatRp(MIN_WITHDRAW - balance)} more to withdraw. Minimum {formatRp(MIN_WITHDRAW)}.
+                  </p>
                 ) : (
                   <p className="text-xs text-muted-foreground">
                     Minimum {formatRp(MIN_WITHDRAW)}. No fees on withdrawals.

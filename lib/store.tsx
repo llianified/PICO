@@ -249,7 +249,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const nextEnergyAtRef = useRef(nextEnergyAt)
   nextEnergyAtRef.current = nextEnergyAt
 
-  const [balance, setBalance] = useState(0)
+  const [balance, setBalance] = useState(37500)
   const [totalEarned, setTotalEarned] = useState(0)
   const [transactions, setTransactions] = useState<Transaction[]>(initialTransactions)
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>(initialPaymentMethods)
