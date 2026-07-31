@@ -7,7 +7,7 @@ import { Progress, SegmentedProgress, Tag } from '@/components/primitives'
 import { PixelSprite } from '@/components/pixel-sprite'
 import { BottomSheet } from '@/components/ui/sheet'
 import { useStore } from '@/lib/store'
-import { DEFAULT_SURVEY, type Quest } from '@/lib/mock-data'
+import { DEFAULT_SURVEY, formatRp, questMoneyReward, type Quest } from '@/lib/mock-data'
 
 const tabs = ['Story', 'Daily', 'Weekly', 'Event', 'Side'] as const
 
@@ -44,7 +44,12 @@ function QuestRow({ quest, onOpen }: { quest: Quest; onOpen: () => void }) {
           <Progress value={(quest.progress.current / quest.progress.total) * 100} className="mt-3" />
         )}
         <div className="mt-3 flex items-center justify-between">
-          <span className="font-mono text-xs font-medium tnum">+{quest.xpValue} XP</span>
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-xs font-medium tnum">+{quest.xpValue} XP</span>
+            <span className="font-mono text-xs font-medium text-primary tnum">
+              +{formatRp(questMoneyReward(quest.xpValue))}
+            </span>
+          </div>
           <Tag>{quest.tag}</Tag>
         </div>
       </div>
@@ -141,7 +146,7 @@ function QuestDetail({ quest, onBack }: { quest: Quest; onBack: () => void }) {
       const { xp, keys, chests } = await completeQuest(quest.id)
       setXpBurst(true)
       setTimeout(() => setXpBurst(false), 1200)
-      const loot = [`+${xp} XP`, `+${keys} Key${keys > 1 ? 's' : ''}`]
+      const loot = [`+${formatRp(questMoneyReward(xp))}`, `+${xp} XP`, `+${keys} Key${keys > 1 ? 's' : ''}`]
       if (chests > 0) loot.push(`+${chests} Chest`)
       toast({ title: 'Quest completed', description: loot.join(' · '), variant: 'success' })
     } catch (err) {
@@ -204,6 +209,14 @@ function QuestDetail({ quest, onBack }: { quest: Quest; onBack: () => void }) {
         <div className="flex flex-col gap-2">
           <span className="text-xs text-muted-foreground">Reward</span>
           <div className="flex flex-col divide-y divide-border rounded-lg border border-border bg-card">
+            <div className="flex items-center gap-3 p-4">
+              <div className="flex h-9 w-9 items-center justify-center rounded-md border border-border bg-surface">
+                <PixelSprite name="coin" size={18} />
+              </div>
+              <span className="font-mono text-sm font-medium text-primary tnum">
+                +{formatRp(questMoneyReward(quest.xpValue))}
+              </span>
+            </div>
             <div className="flex items-center gap-3 p-4">
               <div className="flex h-9 w-9 items-center justify-center rounded-md border border-border bg-surface">
                 <PixelSprite name="star" size={18} />
