@@ -291,11 +291,11 @@ export function questMoneyReward(xp: number): number {
 
 // ---------------------------------------------------------------------------
 // Leveling curve — quadratic growth. The first level-up (1 → 2) costs the base
-// 50 XP, and each subsequent level scales with level², so higher levels get
+// 500 XP, and each subsequent level scales with level², so higher levels get
 // meaningfully harder instead of leveling up every few quests.
-//   Lvl 1→2: 50   Lvl 2→3: 200   Lvl 3→4: 450   Lvl 4→5: 800   Lvl 5→6: 1250
+//   Lvl 1→2: 500   Lvl 2→3: 2000   Lvl 3→4: 4500   Lvl 4→5: 8000   Lvl 5→6: 12500
 // ---------------------------------------------------------------------------
-export const LEVEL_XP_BASE = 50
+export const LEVEL_XP_BASE = 500
 
 /** XP required to advance FROM the given level to the next one. */
 export function xpNeededForLevel(level: number): number {
