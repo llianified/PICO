@@ -199,7 +199,13 @@ export function SettingsSheet({ open, onClose }: { open: boolean; onClose: () =>
             >
               Cancel
             </button>
-            <ActionButton onClick={handleDelete} variant="destructive" className="flex-1">
+            <ActionButton
+              onClick={handleDelete}
+              variant="destructive"
+              loadingText="Deleting"
+              successText="Deleted"
+              className="flex-1"
+            >
               Delete
             </ActionButton>
           </div>
