@@ -115,8 +115,8 @@ function QuestDetail({ quest, onBack }: { quest: Quest; onBack: () => void }) {
   const [answers, setAnswers] = useState<Record<string, string>>({})
 
   const surveyQuestions = quest.survey?.length ? quest.survey : DEFAULT_SURVEY
-  const hasSurvey = quest.state === 'active'
-  const surveyComplete = surveyQuestions.every((q) => answers[q.id])
+  const hasSurvey = quest.state === 'active' && !!quest.survey?.length
+  const surveyComplete = hasSurvey ? surveyQuestions.every((q) => answers[q.id]) : true
 
   const progressPct = quest.progress
     ? (quest.progress.current / quest.progress.total) * 100
