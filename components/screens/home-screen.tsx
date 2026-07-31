@@ -9,14 +9,28 @@ import { CountUp } from '@/components/ui/count-up'
 import { useStore, avatarSprite, ENERGY_MAX } from '@/lib/store'
 
 /** Compact "time ago" label for the Recent Rewards feed. */
-function timeAgo(ts: number): string {
-  const diff = Math.max(0, Date.now() - ts)
-  const mins = Math.floor(diff / 60000)
-  if (mins < 1) return 'just now'
-  if (mins < 60) return `${mins}m ago`
-  const hrs = Math.floor(mins / 60)
-  if (hrs < 24) return `${hrs}h ago`
-  return `${Math.floor(hrs / 24)}d ago`
+function TimeAgoDisplay({ ts }: { ts: number }) {
+  const [display, setDisplay] = useState('just now')
+  
+  useEffect(() => {
+    const update = () => {
+      const diff = Math.max(0, Date.now() - ts)
+      const mins = Math.floor(diff / 60000)
+      if (mins < 1) setDisplay('just now')
+      else if (mins < 60) setDisplay(`${mins}m ago`)
+      else {
+        const hrs = Math.floor(mins / 60)
+        if (hrs < 24) setDisplay(`${hrs}h ago`)
+        else setDisplay(`${Math.floor(hrs / 24)}d ago`)
+      }
+    }
+    
+    update()
+    const interval = setInterval(update, 60000)
+    return () => clearInterval(interval)
+  }, [ts])
+  
+  return <span>{display}</span>
 }
 
 /** Energy card with live countdown timer */
@@ -190,7 +204,7 @@ export function HomeScreen() {
               </div>
               <div className="shrink-0 text-right">
                 <p className="font-mono text-xs font-medium tnum">{r.value}</p>
-                <p className="font-mono text-[10px] text-muted-foreground">{timeAgo(r.createdAt)}</p>
+                <p className="font-mono text-[10px] text-muted-foreground"><TimeAgoDisplay ts={r.createdAt} /></p>
               </div>
             </button>
           ))}

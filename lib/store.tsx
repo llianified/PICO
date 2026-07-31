@@ -170,6 +170,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [totalXp, setTotalXp] = useState(0)
   const [levelXp, setLevelXp] = useState(0)
   const [levelXpNeeded, setLevelXpNeeded] = useState(LEVEL_XP_BASE)
+  
+  const levelRef = useRef(1)
+  const levelXpRef = useRef(0)
+  const levelXpNeededRef = useRef(LEVEL_XP_BASE)
+  
+  useEffect(() => {
+    levelRef.current = level
+    levelXpRef.current = levelXp
+    levelXpNeededRef.current = levelXpNeeded
+  }, [level, levelXp, levelXpNeeded])
 
   // Streak is derived from a mocked login history, never hardcoded.
   const [loginDates, setLoginDates] = useState<string[]>(initialLoginDates)
@@ -373,30 +383,31 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const addXp = useCallback((amount: number) => {
     setTotalXp((prev) => prev + amount)
-    setLevelXp((prevXp) => {
-      let xp = prevXp + amount
-      let leveledUp = false
-      let newLevel = 0
-      setLevelXpNeeded((prevNeeded) => {
-        let needed = prevNeeded
-        setLevel((prevLevel) => {
-          let lvl = prevLevel
-          while (xp >= needed) {
-            xp -= needed
-            lvl += 1
-            needed = xpNeededForLevel(lvl)
-            leveledUp = true
-            newLevel = lvl
-          }
-          if (leveledUp) {
-            setTimeout(() => setLevelUp({ level: newLevel }), 400)
-          }
-          return lvl
-        })
-        return needed
-      })
-      return xp
-    })
+    
+    // Use current ref values to avoid stale closures
+    let xp = levelXpRef.current + amount
+    let lvl = levelRef.current
+    let needed = levelXpNeededRef.current
+    let leveledUp = false
+    let newLevel = 0
+
+    // Calculate all level ups in one pass
+    while (xp >= needed) {
+      xp -= needed
+      lvl += 1
+      needed = xpNeededForLevel(lvl)
+      leveledUp = true
+      newLevel = lvl
+    }
+
+    // Apply all state changes at once
+    setLevel(lvl)
+    setLevelXp(xp)
+    setLevelXpNeeded(needed)
+
+    if (leveledUp) {
+      setTimeout(() => setLevelUp({ level: newLevel }), 400)
+    }
   }, [])
 
   const unlockAchievementProgress = useCallback((id: string, amount = 1) => {
