@@ -20,7 +20,9 @@ const nav = [
 
 function Shell() {
   const { tab, navigate } = useStore()
-  const ActiveScreen = nav.find((n) => n.id === tab)!.Screen
+  // `nav` is a non-empty `as const` tuple, so `nav[0]` (home) is a type-safe fallback if
+  // `tab` ever desyncs from the nav ids — a blank screen is preferable to a crash (P3-6).
+  const ActiveScreen = (nav.find((n) => n.id === tab) ?? nav[0]).Screen
 
   return (
     <div className="relative mx-auto flex h-dvh w-full max-w-[420px] flex-col overflow-hidden bg-background md:my-6 md:h-[860px] md:rounded-3xl md:border md:border-border md:shadow-2xl">
