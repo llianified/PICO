@@ -90,9 +90,9 @@ export function WalletScreen() {
               <div className="flex h-8 w-8 items-center justify-center rounded-md border border-border bg-surface text-muted-foreground">
                 <PixelSprite name="coin" size={16} />
               </div>
-              <span className="flex-1 text-sm">{m.name}</span>
+              <span className="min-w-0 flex-1 truncate text-sm">{m.name}</span>
               <span
-                className={`text-xs ${m.connected ? 'text-muted-foreground' : 'text-foreground'}`}
+                className={`shrink-0 text-xs ${m.connected ? 'text-muted-foreground' : 'text-foreground'}`}
               >
                 {m.connected ? 'Connected' : 'Connect'}
               </span>
@@ -148,14 +148,14 @@ export function WalletScreen() {
               <div className="flex h-9 w-9 items-center justify-center rounded-md border border-border bg-surface text-muted-foreground">
                 <PixelSprite name="coin" size={18} />
               </div>
-              <div className="flex-1">
-                <p className="text-sm">{m.name}</p>
-                <p className="text-xs text-muted-foreground">
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm">{m.name}</p>
+                <p className="truncate text-xs text-muted-foreground">
                   {m.connected ? 'Ready for withdrawals' : 'Not connected'}
                 </p>
               </div>
               {m.connected ? (
-                <span className="text-xs text-muted-foreground">Connected</span>
+                <span className="shrink-0 text-xs text-muted-foreground">Connected</span>
               ) : (
                 <ActionButton
                   onAction={async () => {
@@ -187,9 +187,9 @@ export function WalletScreen() {
               <div className="flex h-11 w-11 items-center justify-center rounded-md border border-border bg-surface text-muted-foreground">
                 <PixelSprite name="coin" size={22} />
               </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium">{activeMethod.name}</p>
-                <p className="text-xs text-muted-foreground">
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium">{activeMethod.name}</p>
+                <p className="truncate text-xs text-muted-foreground">
                   {activeMethod.connected ? 'Connected' : 'Not connected'}
                 </p>
               </div>
@@ -249,11 +249,11 @@ function TransactionRow({ tx }: { tx: Transaction }) {
       <div className="flex h-9 w-9 items-center justify-center rounded-md border border-border bg-surface text-muted-foreground">
         <PixelSprite name="coin" size={16} />
       </div>
-      <div className="flex-1">
-        <p className="text-sm">{tx.title}</p>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm">{tx.title}</p>
         <p className="font-mono text-[10px] text-muted-foreground">{tx.time}</p>
       </div>
-      <span className="font-mono text-xs font-medium tnum">
+      <span className="shrink-0 font-mono text-xs font-medium tnum">
         {sign} {formatRp(tx.amount)}
       </span>
     </motion.div>

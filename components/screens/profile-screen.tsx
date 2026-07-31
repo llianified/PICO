@@ -60,7 +60,7 @@ export function ProfileScreen() {
         <button
           onClick={() => setAvatarOpen(true)}
           aria-label="Change avatar"
-          className="group relative flex h-16 w-16 items-center justify-center overflow-hidden rounded-xl border border-border bg-card transition-transform active:scale-95"
+          className="group relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border bg-card transition-transform active:scale-95"
         >
           {isDefaultAvatar ? (
             <Image
@@ -77,9 +77,9 @@ export function ProfileScreen() {
             <Pencil className="h-2.5 w-2.5" />
           </span>
         </button>
-        <div className="flex-1">
+        <div className="min-w-0 flex-1">
           <span className="pixel-label text-[10px] text-muted-foreground">Level {level}</span>
-          <p className="mt-1.5 text-xl font-medium tracking-tight">{name}</p>
+          <p className="mt-1.5 truncate text-xl font-medium tracking-tight">{name}</p>
           <div className="mt-3">
             <SegmentedProgress value={xpPercent} segments={20} />
             <p className="pixel-label mt-2.5 text-[9px] text-muted-foreground tnum">
@@ -132,16 +132,16 @@ export function ProfileScreen() {
               >
                 <PixelSprite name="trophy" size={20} />
               </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium">{a.title}</p>
-                <p className="text-xs text-muted-foreground">{a.subtitle}</p>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium">{a.title}</p>
+                <p className="truncate text-xs text-muted-foreground">{a.subtitle}</p>
               </div>
               {a.unlocked && !a.claimed ? (
-                <span className="pixel-label rounded-full bg-primary px-2 py-1 text-[8px] text-primary-foreground">
+                <span className="pixel-label shrink-0 rounded-full bg-primary px-2 py-1 text-[8px] text-primary-foreground">
                   Claim
                 </span>
               ) : (
-                <span className="pixel-label text-[9px] text-muted-foreground tnum">
+                <span className="pixel-label shrink-0 text-[9px] text-muted-foreground tnum">
                   {formatCompact(a.current)} / {formatCompact(a.total)}
                 </span>
               )}
