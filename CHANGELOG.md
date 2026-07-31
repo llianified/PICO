@@ -46,6 +46,12 @@ merged remediation passes. Issue identifiers (`P0-1`, `P1-2`, …) refer to
   formula. It now derives the value from the shared `questKeyReward()` helper and
   pluralizes "Key"/"Keys" from that value, so the preview cannot drift from what
   `applyQuestReward` actually grants. Reward values are unchanged.
+- P2-3 — The quest detail progress row no longer shows a half-filled bar next to a
+  "0 / 1" label. The bar percentage and the numeric label are both derived from one
+  `{ current, total }` value, so they can no longer disagree. Quests without a `progress`
+  object are treated as a single-step objective (`0 / 1` until done, `1 / 1` after)
+  instead of the previous magic 50% for the `active` state. Gameplay, rewards and the
+  existing bar transition are unchanged.
 
 ### Removed
 

@@ -3,7 +3,7 @@
 Checklist for every finding in [`PICO_PRODUCTION_AUDIT.md`](./PICO_PRODUCTION_AUDIT.md).
 Sequencing and rationale are in [`ROADMAP.md`](./ROADMAP.md).
 
-**9 of 35 fixed · 2 mitigated · 24 open.**
+**10 of 35 fixed · 2 mitigated · 23 open.**
 
 Legend: `[x]` fixed · `[~]` mitigated (risk reduced, root cause needs a backend) ·
 `[ ]` open.
@@ -56,13 +56,14 @@ Log: [`PICO_P1_REMEDIATION.md`](./PICO_P1_REMEDIATION.md) · 3 of 6 fixed.
 
 ## P2
 
-Log: [`PICO_P2_REMEDIATION.md`](./PICO_P2_REMEDIATION.md) · 3 of 12 fixed — P2-10 and P2-11
-incidentally during the P0 pass, P2-2 directly.
+Log: [`PICO_P2_REMEDIATION.md`](./PICO_P2_REMEDIATION.md) · 4 of 12 fixed — P2-10 and P2-11
+incidentally during the P0 pass, P2-2 and P2-3 directly.
 
 - [ ] **P2-1** — Quest reward preview omits coins that are actually granted
 - [x] **P2-2** — Key reward formula duplicated inline instead of using `questKeyReward()`
   - Quest detail preview now derives keys from `questKeyReward(quest.xpValue)`; reward values unchanged
-- [ ] **P2-3** — Progress bar shows 50% while the label reads "0 / 1"
+- [x] **P2-3** — Progress bar shows 50% while the label reads "0 / 1"
+  - Bar and label now derive from one `{ current, total }` value; quests without `progress` read `0 / 1` → `1 / 1`
 - [ ] **P2-4** — Chest opening bypasses the affordability check it appears to enforce
   - Do this *with* the server ledger, not before it
 - [ ] **P2-5** — Energy consumed even when the quest turns out to be uncompletable
