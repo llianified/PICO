@@ -200,7 +200,7 @@ export function SettingsSheet({ open, onClose }: { open: boolean; onClose: () =>
               Cancel
             </button>
             <ActionButton
-              onClick={handleDelete}
+              onAction={handleDelete}
               variant="destructive"
               loadingText="Deleting"
               successText="Deleted"

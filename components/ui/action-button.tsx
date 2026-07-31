@@ -54,7 +54,6 @@ const variantClasses: Record<'primary' | 'destructive', string> = {
 export function ActionButton({
   children,
   onAction,
-  onClick,
   variant,
   className,
   disabled,
@@ -66,9 +65,8 @@ export function ActionButton({
   type = 'button',
 }: {
   children: React.ReactNode
+  /** Runs through the loading/success/error lifecycle. Omit for `type="submit"`. */
   onAction?: () => void | Promise<unknown>
-  /** Alias for onAction; runs through the same loading/success/error lifecycle. */
-  onClick?: () => void | Promise<unknown>
   variant?: 'primary' | 'destructive'
   className?: string
   disabled?: boolean
@@ -81,20 +79,19 @@ export function ActionButton({
 }) {
   const [status, setStatus] = useState<Status>('idle')
   const busy = status === 'loading'
-  const handler = onAction ?? onClick
 
   const run = useCallback(async () => {
     if (busy || disabled) return
     try {
       setStatus('loading')
-      await handler?.()
+      await onAction?.()
       setStatus('success')
       setTimeout(() => setStatus('idle'), resetDelay)
     } catch {
       setStatus('error')
       setTimeout(() => setStatus('idle'), resetDelay)
     }
-  }, [busy, disabled, handler, resetDelay])
+  }, [busy, disabled, onAction, resetDelay])
 
   return (
     <button
