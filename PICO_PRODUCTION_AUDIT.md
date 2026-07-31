@@ -14,6 +14,8 @@
 
 > **Remediation update — P1 pass, in progress.** P1 items are being fixed individually rather than as one batch. Per-issue status is recorded inline below; the change log is in [`PICO_P1_REMEDIATION.md`](./PICO_P1_REMEDIATION.md).
 
+> **Remediation update — P2 and P3 passes, in progress.** Both bands are also being fixed one issue at a time, out of numeric order and interleaved with P1, so a closed P3 does not imply the bands above it are done. Logs: [`PICO_P2_REMEDIATION.md`](./PICO_P2_REMEDIATION.md), [`PICO_P3_REMEDIATION.md`](./PICO_P3_REMEDIATION.md). **Five fixes (P2-9, P3-2, P3-5, P3-7, P3-11) had landed in code before this document recorded them** — they are marked as of 2026-08-01 and itemised in the [appendix](#appendix--documentation-drift-and-stale-findings).
+
 ---
 
 ## Status summary
@@ -24,9 +26,11 @@ Status as of 2026-08-01. Legend: ✅ Fixed · ⚠️ Mitigated (risk reduced, ro
 |---|---|---|---|---|---|
 | P0 — Critical | 5 | 3 | 2 | 0 | [`PICO_P0_REMEDIATION.md`](./PICO_P0_REMEDIATION.md) |
 | P1 — High | 6 | 3 | 0 | 3 | [`PICO_P1_REMEDIATION.md`](./PICO_P1_REMEDIATION.md) |
-| P2 — Medium | 12 | 6 | 0 | 6 | [`PICO_P2_REMEDIATION.md`](./PICO_P2_REMEDIATION.md) |
-| P3 — Low | 12 | 4 | 0 | 8 | [`PICO_P3_REMEDIATION.md`](./PICO_P3_REMEDIATION.md) |
-| **Total** | **35** | **16** | **2** | **17** | |
+| P2 — Medium | 12 | 5 | 0 | 7 | [`PICO_P2_REMEDIATION.md`](./PICO_P2_REMEDIATION.md) |
+| P3 — Low | 12 | 6 | 0 | 6 | [`PICO_P3_REMEDIATION.md`](./PICO_P3_REMEDIATION.md) |
+| **Total** | **35** | **17** | **2** | **16** | |
+
+> **Count correction — 2026-08-01.** The previous revision of this table claimed 6 fixed / 6 open for P2 and 4 fixed / 8 open for P3, which the per-issue rows below never supported. The bands are now counted from those rows: P2 has five closed issues (P2-2, P2-3, P2-9, P2-10, P2-11) and P3 has six (P3-2, P3-3, P3-5, P3-6, P3-7, P3-11). Several of those fixes had landed in code without being marked here; see the [appendix](#appendix--documentation-drift-and-stale-findings).
 
 | Issue | Title | Status | Detail |
 |---|---|---|---|
@@ -41,12 +45,19 @@ Status as of 2026-08-01. Legend: ✅ Fixed · ⚠️ Mitigated (risk reduced, ro
 | P1-4 | Weekly and Event tabs permanently empty | ⬜ Open | — |
 | P1-5 | `processAchievementQueue` type/value drift | ✅ Fixed | [log](./PICO_P1_REMEDIATION.md#p1-5--processachievementqueue-exported-through-context-but-absent-from-storevalue) |
 | P1-6 | Theme setting inert; locked to dark | ⬜ Open | — |
-| P2-1, P2-4 … P2-9, P2-12 | See [P2 — Medium](#p2--medium) | ⬜ Open | — |
+| P2-1, P2-4 … P2-8, P2-12 | See [P2 — Medium](#p2--medium) | ⬜ Open | — |
 | P2-2 | Key reward formula duplicated inline | ✅ Fixed | [log](./PICO_P2_REMEDIATION.md#p2-2--key-reward-formula-duplicated-inline-instead-of-using-the-shared-helper) |
 | P2-3 | Progress bar 50% vs "0 / 1" label | ✅ Fixed | [log](./PICO_P2_REMEDIATION.md#p2-3--progress-bar-shows-50-while-the-label-reads-0--1) |
+| P2-9 | `navigator.clipboard` without a fallback | ✅ Fixed | [log](./PICO_P2_REMEDIATION.md#p2-9--navigatorclipboard-used-without-a-fallback-or-error-handling) |
 | P2-10 | Achievement counters can overrun the total | ✅ Fixed | Incidental — see [appendix](#appendix--documentation-drift-and-stale-findings) |
 | P2-11 | Two parallel "time ago" implementations | ✅ Fixed | Incidental — see [appendix](#appendix--documentation-drift-and-stale-findings) |
-| P3-1 … P3-12 | See [P3 — Low](#p3--low) | ⬜ Open | P3-1 partly obsolete — see [appendix](#appendix--documentation-drift-and-stale-findings) |
+| P3-1, P3-4, P3-8 … P3-10, P3-12 | See [P3 — Low](#p3--low) | ⬜ Open | P3-1 partly obsolete — see [appendix](#appendix--documentation-drift-and-stale-findings) |
+| P3-2 | Dead code and unreachable fallback | ✅ Fixed | [log](./PICO_P3_REMEDIATION.md#p3-2--dead-code-and-an-unreachable-fallback) |
+| P3-3 | `initialLoginDates = makeConsecutiveDays(0)` | ✅ Fixed | [log](./PICO_P3_REMEDIATION.md#p3-3--initiallogindates--makeconsecutivedays0-always-returns-an-empty-array) |
+| P3-5 | `unlockedAt: 'Just now'` frozen as a string | ✅ Fixed | [log](./PICO_P3_REMEDIATION.md#p3-5--unlockedat-just-now-frozen-as-a-string) |
+| P3-6 | Non-null assertion on nav lookup | ✅ Fixed | [log](./PICO_P3_REMEDIATION.md#p3-6--non-null-assertion-on-the-nav-lookup) |
+| P3-7 | Redundant `onAction` / `onClick` aliases | ✅ Fixed | [log](./PICO_P3_REMEDIATION.md#p3-7--redundant-onaction--onclick-prop-aliases-on-actionbutton) |
+| P3-11 | Achievement queue timers not cleared | ✅ Fixed | [log](./PICO_P3_REMEDIATION.md#p3-11--achievement-modal-queue-timers-not-cleared-on-unmount) |
 
 Progress is tracked as a checklist in [`TASKS.md`](./TASKS.md) and sequenced in [`ROADMAP.md`](./ROADMAP.md).
 
@@ -277,6 +288,7 @@ Everything below is real and worth fixing, but items P0-2 and P0-3 in particular
 
 ### P2-9 · `navigator.clipboard` used without a fallback or error handling
 
+- **Status:** ✅ **Fixed.** A `copyText()` helper now guards on `navigator.clipboard?.writeText`, awaits it inside `try/catch`, falls back to the legacy `execCommand` path via an off-screen textarea, and returns a boolean rather than throwing. `handleCopy` awaits it and, on `false`, shows an error toast — *"Copying is blocked here — select the link and copy it manually."* — and returns before `setCopied(true)`, so the success toast and the checkmark are unreachable unless a copy actually happened. Both branches verified live, the failure path by stubbing the API to reject. Full log: [`PICO_P2_REMEDIATION.md`](./PICO_P2_REMEDIATION.md#p2-9--navigatorclipboard-used-without-a-fallback-or-error-handling).
 - **Files:** `components/referral-modal.tsx:24-30`
 - **Root cause:** Calls `navigator.clipboard.writeText(...)` without awaiting or catching, then unconditionally shows *"Copied to clipboard!"*. The API is undefined on non-secure origins and rejects when permission is denied.
 - **Recommended fix:** `await` inside try/catch; only toast success on resolve; provide a select-the-text fallback.
@@ -303,25 +315,28 @@ Everything below is real and worth fixing, but items P0-2 and P0-3 in particular
 - **Root cause:** Every feed row mounts its own `setInterval(…, 60000)`. The feed holds up to 40 entries (`store.tsx:303`), so up to 40 independent timers run concurrently, each triggering its own state update and re-render.
 - **Recommended fix:** One shared ticker at the list level (or a context clock) driving all rows.
 - **Risk:** Needless wakeups and battery drain on mobile; scales linearly with feed length.
+- **Scope update — 2026-08-01:** the [P3-5 fix](./PICO_P3_REMEDIATION.md#p3-5--unlockedat-just-now-frozen-as-a-string) added the same per-item interval to the Inventory screen (`UnlockedAtLabel`), deliberately matching this pattern so the consolidation stays a single change. **P2-12 now covers `components/screens/inventory-screen.tsx:22-34` as well.** Still open.
 
 ---
 
 ## P3 — Low
 
-| # | Issue | Files | Fix |
-|---|---|---|---|
-| P3-1 | **Unused dependencies shipped:** `@supabase/ssr`, `@supabase/supabase-js`, `sonner`, `@radix-ui/react-progress`, `@radix-ui/react-tabs`, `@radix-ui/react-slot`, `class-variance-authority` — all installed, none imported (verified by grep). Supabase in particular implies a backend that doesn't exist. | `package.json` | Remove, or actually adopt Radix/Supabase |
-| P3-2 | **Dead code:** `Avatar`/`formatRp`/`formatCompact`/`avatars` imported into `store.tsx` but several are unused there; `components/ui/button.tsx` and `components/ui/skeleton.tsx`'s `Skeleton` export are unreferenced; `DEFAULT_SURVEY` is imported and assigned to `surveyQuestions` but `hasSurvey` requires `quest.survey?.length`, so the fallback is unreachable. | `lib/store.tsx:13-40`, `adventure-screen.tsx:131-133` | Prune |
-| P3-3 | **`initialLoginDates = makeConsecutiveDays(0)`** — a function call that always returns `[]`. Obfuscates intent. | `lib/mock-data.ts:385` | Use `[]` |
-| P3-4 | **Hardcoded "Good Evening"** greeting regardless of actual time of day. | `home-screen.tsx:120` | Derive from local hour *after mount* (see P0-1) |
-| P3-5 | **`unlockedAt: 'Just now'`** stored as a frozen string, so every chest item reads "Just now" forever. | `store.tsx:640` | Store a timestamp; format at render |
-| P3-6 | **Non-null assertion on nav lookup:** `nav.find(...)!.Screen` throws if `tab` ever desyncs. | `app-shell.tsx:23` | Fall back to home |
-| P3-7 | **Redundant prop API:** `ActionButton` accepts both `onAction` and `onClick` as aliases for the same thing. | `ui/action-button.tsx:55-70` | Collapse to one |
-| P3-8 | **`CountUp` cleanup writes `fromRef.current = to`** on unmount even if the animation was interrupted mid-flight, so a remount jumps rather than resuming. | `ui/count-up.tsx:44-47` | Store the last displayed value |
-| P3-9 | **No CSP.** `next.config.mjs` sets good baseline headers (nosniff, Referrer-Policy, X-Frame-Options, Permissions-Policy) but no `Content-Security-Policy`. | `next.config.mjs` | Add report-only CSP, then enforce |
-| P3-10 | **`userScalable: false` / `maximumScale: 1`** blocks pinch-zoom. | `app/layout.tsx:31-36` | Remove; fails WCAG 1.4.4 |
-| P3-11 | **Achievement modal queue timing is fragile:** 2.5s + 300ms chained `setTimeout`s with no cleanup on unmount, so timers can fire after teardown. | `store.tsx:264-279` | Clear `achievementTimeoutRef` in a cleanup effect |
-| P3-12 | **`md:h-[860px]` fixed desktop frame** can clip content on short viewports. | `app-shell.tsx:26` | Use `max-h` with `dvh` |
+Statuses added 2026-08-01. Six of the twelve are closed; each links to its entry in [`PICO_P3_REMEDIATION.md`](./PICO_P3_REMEDIATION.md). The original finding text is unchanged.
+
+| # | Issue | Files | Fix | Status |
+|---|---|---|---|---|
+| P3-1 | **Unused dependencies shipped:** `@supabase/ssr`, `@supabase/supabase-js`, `sonner`, `@radix-ui/react-progress`, `@radix-ui/react-tabs`, `@radix-ui/react-slot`, `class-variance-authority` — all installed, none imported (verified by grep). Supabase in particular implies a backend that doesn't exist. | `package.json` | Remove, or actually adopt Radix/Supabase | ⬜ Open — premise mostly obsolete, only `class-variance-authority` is still installed (see [appendix](#appendix--documentation-drift-and-stale-findings)) |
+| P3-2 | **Dead code:** `Avatar`/`formatRp`/`formatCompact`/`avatars` imported into `store.tsx` but several are unused there; `components/ui/button.tsx` and `components/ui/skeleton.tsx`'s `Skeleton` export are unreferenced; `DEFAULT_SURVEY` is imported and assigned to `surveyQuestions` but `hasSurvey` requires `quest.survey?.length`, so the fallback is unreachable. | `lib/store.tsx:13-40`, `adventure-screen.tsx:131-133` | Prune | ✅ [Fixed](./PICO_P3_REMEDIATION.md#p3-2--dead-code-and-an-unreachable-fallback) — `button.tsx` deleted, `Skeleton` unexported, `DEFAULT_SURVEY` replaced with `?? []`, unused helpers and the `ENERGY_MAX` import removed. The `store.tsx` imports it suspected are all in fact used. `SkeletonRow` is knowingly left unreferenced. |
+| P3-3 | **`initialLoginDates = makeConsecutiveDays(0)`** — a function call that always returns `[]`. Obfuscates intent. | `lib/mock-data.ts:385` | Use `[]` | ✅ [Fixed](./PICO_P3_REMEDIATION.md#p3-3--initiallogindates--makeconsecutivedays0-always-returns-an-empty-array) |
+| P3-4 | **Hardcoded "Good Evening"** greeting regardless of actual time of day. | `home-screen.tsx:120` | Derive from local hour *after mount* (see P0-1) | ⬜ Open |
+| P3-5 | **`unlockedAt: 'Just now'`** stored as a frozen string, so every chest item reads "Just now" forever. | `store.tsx:640` | Store a timestamp; format at render | ✅ [Fixed](./PICO_P3_REMEDIATION.md#p3-5--unlockedat-just-now-frozen-as-a-string) — the field is now `number`, stamped `Date.now()`, and formatted after mount by `UnlockedAtLabel` via the shared `formatRelativeTime`. Adds per-item timers, folded into P2-12. |
+| P3-6 | **Non-null assertion on nav lookup:** `nav.find(...)!.Screen` throws if `tab` ever desyncs. | `app-shell.tsx:23` | Fall back to home | ✅ [Fixed](./PICO_P3_REMEDIATION.md#p3-6--non-null-assertion-on-the-nav-lookup) |
+| P3-7 | **Redundant prop API:** `ActionButton` accepts both `onAction` and `onClick` as aliases for the same thing. | `ui/action-button.tsx:55-70` | Collapse to one | ✅ [Fixed](./PICO_P3_REMEDIATION.md#p3-7--redundant-onaction--onclick-prop-aliases-on-actionbutton) — `onClick` and the `handler` indirection removed; the two callers migrated to `onAction`. |
+| P3-8 | **`CountUp` cleanup writes `fromRef.current = to`** on unmount even if the animation was interrupted mid-flight, so a remount jumps rather than resuming. | `ui/count-up.tsx:44-47` | Store the last displayed value | ⬜ Open — re-confirmed against the current tree |
+| P3-9 | **No CSP.** `next.config.mjs` sets good baseline headers (nosniff, Referrer-Policy, X-Frame-Options, Permissions-Policy) but no `Content-Security-Policy`. | `next.config.mjs` | Add report-only CSP, then enforce | ⬜ Open — the baseline headers are present; only the CSP is missing |
+| P3-10 | **`userScalable: false` / `maximumScale: 1`** blocks pinch-zoom. | `app/layout.tsx:31-36` | Remove; fails WCAG 1.4.4 | ⬜ Open — blocked on the Phase 0 Telegram decision |
+| P3-11 | **Achievement modal queue timing is fragile:** 2.5s + 300ms chained `setTimeout`s with no cleanup on unmount, so timers can fire after teardown. | `store.tsx:264-279` | Clear `achievementTimeoutRef` in a cleanup effect | ✅ [Fixed](./PICO_P3_REMEDIATION.md#p3-11--achievement-modal-queue-timers-not-cleared-on-unmount) — the gap timer got its own `achievementGapTimeoutRef` (the original ref doubles as the drain flag), plus a mounted guard and a cleanup effect clearing both. |
+| P3-12 | **`md:h-[860px]` fixed desktop frame** can clip content on short viewports. | `app-shell.tsx:26` | Use `max-h` with `dvh` | ⬜ Open |
 
 ---
 
@@ -393,8 +408,8 @@ The UI layer would score in the 80s on its own. The score is dominated by the ab
 |---|---|---|
 | **P0** | 5 issues. P0-1/-4/-5 are contained front-end fixes (~0.5–1 day) — **now done**. **P0-2 and P0-3 require a backend, an ad-network integration, and a server-authoritative ledger** — mitigated on the client, remainder folded into Phase 2. | **3–4 weeks** (front-end portion ✅ complete) |
 | **P1** | 6 issues — withdraw dead-end, Max guard, level-up queue, tab derivation, type cleanup, theme wiring (theme needs light tokens across all components). | **4–6 days** |
-| **P2** | 12 issues — reward-preview parity, guard relocation, economy retune, Radix dialog migration, timer consolidation, derived counters. | **5–8 days** |
-| **P3** | 12 issues — mostly mechanical pruning and polish. | **2–3 days** |
+| **P2** | 12 issues — reward-preview parity, guard relocation, economy retune, Radix dialog migration, timer consolidation, derived counters. **5 closed** (P2-2, P2-3, P2-9, P2-10, P2-11); the remaining 7 include the two that should follow the server ledger. | **5–8 days** (~3–5 days remain) |
+| **P3** | 12 issues — mostly mechanical pruning and polish. **6 closed** (P3-2, P3-3, P3-5, P3-6, P3-7, P3-11). | **2–3 days** (~1–1.5 days remain) |
 
 - **Front-end-only total: ~2.5–4 weeks.**
 - **Genuinely production-ready** (with backend, auth, persistence, real ad integration, server-side ledger): **~8–11 weeks.**
@@ -438,10 +453,12 @@ Choose the backend and whether real money is in scope. Every P0 either depends o
 
 ### Phase 5 — Accessibility, performance, polish (~1 week)
 
-17. **P2-7 + P2-8** migrate dialogs to the already-installed Radix Dialog
+17. **P2-7 + P2-8** migrate dialogs to the already-installed Radix Dialog — ⚠️ *vehicle is stale; that package is no longer installed (see appendix)*
 18. `prefers-reduced-motion`; `role="progressbar"` on `SegmentedProgress`; tap-target sizing
-19. **P2-12** consolidate feed timers
-20. **P3** sweep: prune unused deps and dead code; add report-only CSP
+19. **P2-12** consolidate feed timers — *now also the Inventory screen's per-item timers, added by the P3-5 fix*
+20. **P3** sweep: prune unused deps and dead code; add report-only CSP — 🟡 *partly done ahead of schedule: P3-2 (dead code), P3-3, P3-5, P3-6, P3-7 and P3-11 are closed; P3-1's prune, P3-4, P3-8, P3-9's CSP, P3-10 and P3-12 remain*
+
+Note that P2-9 (clipboard fallback) and most of the P3 band were fixed out of this order, individually, rather than as the sweep this plan anticipated. The ordering above is still the recommendation for what remains; it is not a record of what happened.
 
 ### Phase 6 — Telegram Mini App (~1 week, if targeted)
 
@@ -479,9 +496,30 @@ Both were verified fixed in the current code and are marked inline above:
 - **P2-10** — closed by the P0-5 remediation, which derived `badges` from `achievements`.
 - **P2-11** — closed by the P0-1 remediation, which rewrote `TimeAgoDisplay` to call the shared `formatRelativeTime`.
 
+### Fixes that landed in code before they were documented
+
+Added 2026-08-01. Five issues were fixed in commits that did not update this audit, `TASKS.md`, `ROADMAP.md` or the remediation logs, so the documentation showed them open while the code had moved on. Each was re-verified against the current tree before being marked, and each now has a full entry in its band's log:
+
+| Issue | Commit | What closed it |
+|---|---|---|
+| **P2-9** | `aae448d` | `copyText()` helper: guarded async API, `execCommand` fallback, boolean result, error toast on failure |
+| **P3-2** | `5f8ad7c` | `button.tsx` deleted, `Skeleton` unexported, `DEFAULT_SURVEY` and unused seed helpers removed |
+| **P3-5** | `1399020` | `unlockedAt` became `number`; `UnlockedAtLabel` formats it after mount |
+| **P3-7** | `4c9196e` | `onClick` alias removed from `ActionButton`; callers migrated to `onAction` |
+| **P3-11** | `375d6ec` | Separate `achievementGapTimeoutRef`, mounted guard, cleanup effect clearing both timers |
+
+Two consequences worth carrying forward rather than burying:
+
+- **P3-2 makes `class-variance-authority` genuinely unused.** `button.tsx` was its only consumer, so P3-1 — the one part of it that was not already obsolete — is now a one-line `package.json` prune.
+- **P3-5 widened P2-12's scope.** It added the same per-item `setInterval` to the Inventory screen that the finding describes in the Home feed, deliberately, so that consolidating them stays one change. P2-12 must now cover both screens.
+
+The gap itself is the lesson: [`CONTRIBUTING.md`](./CONTRIBUTING.md) already requires the four-document update per fix, and these five commits shipped without it.
+
 ### Findings re-confirmed as still valid
 
-Spot-checked against the current tree and unchanged: **P1-3** (single `setLevelUp` per payout), **P1-4** (`tabs` still advertises five categories; `questCatalogue` still contains only `Daily`, `Side` and `Story`), **P1-6** (`app/globals.css:31` still hardcodes `color-scheme: dark` and `app/layout.tsx` still sets `colorScheme: 'dark'`), **P2-12** (per-row `setInterval(update, 60000)` in the feed), **P3-3** (`initialLoginDates = makeConsecutiveDays(0)`), **P3-5** (`unlockedAt: 'Just now'`), **P3-9** (no CSP in `next.config.mjs`), **P3-10** (`maximumScale: 1` / `userScalable: false`).
+Spot-checked against the current tree and unchanged: **P1-3** (single `setLevelUp` per payout), **P1-4** (`tabs` still advertises five categories; `questCatalogue` still contains only `Daily`, `Side` and `Story`), **P1-6** (`app/globals.css:31` still hardcodes `color-scheme: dark` and `app/layout.tsx` still sets `colorScheme: 'dark'`), **P2-12** (per-row `setInterval(update, 60000)`, now in the feed *and* the inventory), **P3-4** (hardcoded "Good Evening"), **P3-8** (`CountUp` writes `fromRef.current = to` in its cleanup), **P3-9** (baseline security headers are present in `next.config.mjs`, but still no CSP), **P3-10** (`maximumScale: 1` / `userScalable: false`), **P3-12** (`md:h-[860px]`).
+
+**Superseded rows:** the previous revision of this list also cited **P3-3** and **P3-5** as still valid. Both have since been fixed — P3-3 in `ec436aa`, P3-5 in `1399020` — and they are recorded above instead.
 
 ### New issue discovered during the documentation audit
 

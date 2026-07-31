@@ -19,8 +19,14 @@ dependencies and rationale. Effort figures are the audit's own estimates.
 | [Phase 0](#phase-0--decide-the-architecture) | Blocker | Architecture decision | ⬜ Not started |
 | [Phase 1](#phase-1--p0--critical) | P0 | 5 | 🟡 3 fixed, 2 mitigated — backend remainder open |
 | [Phase 2](#phase-2--p1--high) | P1 | 6 | 🟡 3 of 6 done |
-| [Phase 3](#phase-3--p2--medium) | P2 | 12 | 🟡 2 of 12 done (both incidental) |
-| [Phase 4](#phase-4--p3--low) | P3 | 12 | ⬜ Not started |
+| [Phase 3](#phase-3--p2--medium) | P2 | 12 | 🟡 5 of 12 done |
+| [Phase 4](#phase-4--p3--low) | P3 | 12 | 🟡 6 of 12 done |
+
+> **Phases are not running in sequence.** P2 and P3 items have been fixed individually and
+> out of order, interleaved with P1, so "Phase 4 in progress" does not mean Phases 2 and 3
+> are finished — they are not. Per-issue status lives in
+> [`TASKS.md`](./TASKS.md) and the remediation logs; this document is the recommended
+> sequencing for what remains, not a record of what happened.
 
 ---
 
@@ -86,26 +92,29 @@ The remaining withdraw work is **not** in this phase — it is the Phase 1/2 ser
 
 ## Phase 3 — P2 · Medium
 
-**Estimate: 5–8 days. 2 of 12 done, both as side effects of the P0 pass.**
+**Estimate: 5–8 days, ~3–5 days remaining. 5 of 12 done.**
+Log: [`PICO_P2_REMEDIATION.md`](./PICO_P2_REMEDIATION.md).
 
 | Item | Status |
 |---|---|
 | P2-10 · Badge counter overrun | ✅ Fixed incidentally by P0-5 (badges now derived) |
 | P2-11 · Duplicate "time ago" implementations | ✅ Fixed incidentally by P0-1 |
+| P2-2 · Key formula duplicated inline | ✅ Fixed — preview derives from `questKeyReward()` |
+| P2-3 · Progress bar 50% vs "0 / 1" label | ✅ Fixed — bar and label share one `{ current, total }` |
+| P2-9 · `navigator.clipboard` without fallback | ✅ Fixed — guarded API, `execCommand` fallback, no false success toast |
 | P2-1 · Reward preview omits coins | ⬜ Open |
-| P2-2 · Key formula duplicated inline | ⬜ Open |
-| P2-3 · Progress bar 50% vs "0 / 1" label | ⬜ Open |
 | P2-4 · Chest affordability check bypassed | ⬜ Open |
 | P2-5 · Energy consumed on uncompletable quest | ⬜ Open |
 | P2-6 · Energy economy: 5 quests then a 9-minute wall | ⬜ Open |
 | P2-7 · Dialogs lack focus trapping/restoration | ⬜ Open |
 | P2-8 · `ReferralModal` is not a modal | ⬜ Open |
-| P2-9 · `navigator.clipboard` without fallback | ⬜ Open |
-| P2-12 · Per-item interval timers in the feed | ⬜ Open |
+| P2-12 · Per-item interval timers in the feed | ⬜ Open — **and now the Inventory screen too** |
 
 Suggested grouping:
 
-- **Reward-preview parity** — P2-1 + P2-2 together, both via the shared helpers.
+- **Reward-preview parity** — P2-1 + P2-2 together, both via the shared helpers. ⚠️ P2-2 has
+  since been done on its own, so P2-1 (the missing coins row) is what remains here — and
+  `questCoinReward()` is the helper it should use, mirroring what P2-2 did for keys.
 - **Guards** — P2-4 + P2-5 should move server-side *alongside* the new ledger, not before
   it; doing them against client-only state means writing the code twice.
 - **Economy tuning** — P2-6; also give the 5,000 starting coins a purpose.
@@ -113,24 +122,49 @@ Suggested grouping:
   `@radix-ui/react-dialog`, "already a dependency") is **stale** — that package is no
   longer installed; `@base-ui/react` is present instead. Re-decide the vehicle before
   starting.
-- **Performance** — P2-12 with a single shared ticker.
+- **Performance** — P2-12 with a single shared ticker, now driving **two** screens: the Home
+  rewards feed and the Inventory list, which gained the same per-item interval from the P3-5
+  fix. Doing it once for both is the point of the consolidation.
 
 ---
 
 ## Phase 4 — P3 · Low
 
-**Estimate: 2–3 days. Mostly mechanical pruning and polish. Not started.**
+**Estimate: 2–3 days, ~1–1.5 days remaining. 6 of 12 done — fixed individually and ahead of
+this phase, not as the sweep the plan anticipated.**
+Log: [`PICO_P3_REMEDIATION.md`](./PICO_P3_REMEDIATION.md).
 
 All twelve items (P3-1 … P3-12) are listed in
 [the audit's P3 table](./PICO_PRODUCTION_AUDIT.md#p3--low) and tracked in
-[`TASKS.md`](./TASKS.md). Themes:
+[`TASKS.md`](./TASKS.md).
 
-- **Pruning** — P3-1 (dependencies), P3-2 (dead code), P3-3. ⚠️ P3-1 is largely obsolete:
-  six of the seven packages it names are no longer installed. Verify before acting.
-- **Correctness polish** — P3-4, P3-5, P3-6, P3-8, P3-11.
-- **API cleanup** — P3-7.
-- **Security & a11y** — P3-9 (add report-only CSP, then enforce), P3-10 (re-enable
-  pinch-zoom — decide against the Telegram question from Phase 0), P3-12.
+| Item | Status |
+|---|---|
+| P3-2 · Dead code and unreachable fallback | ✅ Fixed |
+| P3-3 · `initialLoginDates = makeConsecutiveDays(0)` | ✅ Fixed |
+| P3-5 · `unlockedAt` frozen as a string | ✅ Fixed |
+| P3-6 · Non-null assertion on nav lookup | ✅ Fixed |
+| P3-7 · Redundant `onAction` / `onClick` aliases | ✅ Fixed |
+| P3-11 · Achievement queue timers not cleared | ✅ Fixed |
+| P3-1 · Unused dependencies | ⬜ Open |
+| P3-4 · Hardcoded "Good Evening" greeting | ⬜ Open |
+| P3-8 · `CountUp` cleanup on interrupted animations | ⬜ Open |
+| P3-9 · No Content-Security-Policy | ⬜ Open |
+| P3-10 · `userScalable: false` blocks pinch-zoom | ⬜ Open |
+| P3-12 · `md:h-[860px]` fixed desktop frame | ⬜ Open |
+
+Themes for the remainder:
+
+- **Pruning** — P3-1 only; P3-2 and P3-3 are done. ⚠️ P3-1 is largely obsolete: six of the
+  seven packages it names are no longer installed. What remains is `class-variance-authority`,
+  which P3-2 made genuinely unused when it deleted its only consumer — a one-line prune.
+- **Correctness polish** — P3-4 and P3-8 remain; P3-5, P3-6 and P3-11 are done. P3-4 must
+  resolve the local hour *after mount*, or it reintroduces P0-1's hydration mismatch — the
+  pattern to copy is `TimeAgoDisplay` / `UnlockedAtLabel`.
+- **API cleanup** — done (P3-7).
+- **Security & a11y** — P3-9 (the baseline headers already exist in `next.config.mjs`; only
+  the CSP is missing — ship report-only, then enforce), P3-10 (re-enable pinch-zoom — decide
+  against the Telegram question from Phase 0), P3-12.
 
 Also fold in the accessibility items the audit lists outside the numbered findings:
 `prefers-reduced-motion` support, `role="progressbar"` on `SegmentedProgress`, 44×44px tap

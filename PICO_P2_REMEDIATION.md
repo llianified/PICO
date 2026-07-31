@@ -24,7 +24,7 @@ order and follow that template — see [CONTRIBUTING.md](./CONTRIBUTING.md).
 | [P2-6](./PICO_PRODUCTION_AUDIT.md#p2--medium) | Energy economy allows only 5 quests | ⬜ Open | — |
 | [P2-7](./PICO_PRODUCTION_AUDIT.md#p2--medium) | Modals lack focus trapping and restoration | ⬜ Open | — |
 | [P2-8](./PICO_PRODUCTION_AUDIT.md#p2--medium) | `ReferralModal` is not a modal | ⬜ Open | — |
-| [P2-9](./PICO_PRODUCTION_AUDIT.md#p2--medium) | `navigator.clipboard` used without a fallback | ⬜ Open | — |
+| [P2-9](#p2-9--navigatorclipboard-used-without-a-fallback-or-error-handling) | `navigator.clipboard` used without a fallback | ✅ Fixed | 2026-08-01 |
 | [P2-10](./PICO_PRODUCTION_AUDIT.md#p2--medium) | Achievement counters can overrun the total | ✅ Fixed | 2026-07-31 |
 | [P2-11](./PICO_PRODUCTION_AUDIT.md#p2--medium) | Two parallel "time ago" implementations | ✅ Fixed | 2026-07-31 |
 | [P2-12](./PICO_PRODUCTION_AUDIT.md#p2--medium) | Per-item interval timers in the rewards feed | ⬜ Open | — |
@@ -190,3 +190,84 @@ is the only reading that both numbers can honestly share.
 - **`SegmentedProgress` itself.** Adding `role="progressbar"` / `aria-valuenow` is a
   separate open accessibility item in [`TASKS.md`](./TASKS.md), not part of P2-3.
 - **P2-1 (reward preview omits coins).** Still open, same file, separate finding.
+
+---
+
+## P2-9 · `navigator.clipboard` used without a fallback or error handling
+
+### Issue
+
+Audit [P2-9](./PICO_PRODUCTION_AUDIT.md#p2-9--navigatorclipboard-used-without-a-fallback-or-error-handling).
+The referral modal fired `navigator.clipboard.writeText(...)` and then unconditionally
+claimed success, so a blocked or unavailable clipboard produced a "Copied to clipboard!"
+toast with nothing copied.
+
+### Status
+
+✅ **Fixed** — 2026-08-01
+
+### Root cause
+
+Two separate defects in one expression. `handleCopy` neither awaited nor caught the
+promise, so a rejection became an unhandled rejection; and because the success toast sat
+on the next line rather than in a `.then`, it fired on the *call*, not on the *copy*.
+`navigator.clipboard` is `undefined` on non-secure origins and rejects when the permission
+is denied — both are ordinary conditions for a Mini App opened inside a webview, not edge
+cases. The user was then told to paste a link the platform had never given them.
+
+### Solution
+
+`components/referral-modal.tsx`
+
+- Added a module-level `copyText(text): Promise<boolean>` helper that reports whether the
+  text actually reached the clipboard:
+  - Guards on `navigator.clipboard?.writeText` before calling it, so a missing API is a
+    fall-through rather than a `TypeError`, and awaits inside `try/catch` so a denied
+    permission is caught rather than escaping as an unhandled rejection.
+  - Falls back to the legacy `document.execCommand('copy')` path via an off-screen
+    `readonly` textarea, which still works on the insecure origins where the async API is
+    absent, and returns `execCommand`'s own boolean rather than assuming it worked.
+  - Returns `false` instead of throwing on total failure, so callers branch on a value.
+- `handleCopy` is now `async` and awaits `copyText(referralLink)`. On `false` it shows an
+  `error` toast — *"Copying is blocked here — select the link and copy it manually."* — and
+  returns **before** `setCopied(true)`, so neither the success toast nor the checkmark can
+  appear on a failed copy.
+
+Returning a boolean rather than throwing is what makes the toast honest: the success path
+is now unreachable unless a copy actually happened, which was the substance of the finding.
+
+### Verification
+
+- `pnpm exec tsc --noEmit` — passes clean.
+- Live browser walkthrough at 384×639, dark mode, via Adventure → "Invite Friends" →
+  referral modal.
+  - **Happy path** (secure origin, permission granted): "Copy" swaps to the checkmark and
+    the success toast appears; the link pasted back correctly.
+  - **Failure path**, forced by stubbing `navigator.clipboard` to a rejecting `writeText`
+    and `document.execCommand` to `false` in the console: the error toast appears, the
+    button does **not** switch to the copied state, and the console shows no unhandled
+    rejection. Both branches were exercised deliberately — a fallback claim is unverified
+    until the failing side has been observed.
+
+### Files changed
+
+- `components/referral-modal.tsx` — `copyText` helper; `handleCopy` awaits it and branches.
+- `CHANGELOG.md`, `TASKS.md`, `PICO_PRODUCTION_AUDIT.md`, `ROADMAP.md` and this log —
+  documentation.
+
+### Notes
+
+**Deliberately not changed:**
+
+- **P2-8 (`ReferralModal` is not a modal).** Same file, still open. The bare
+  `if (!isOpen) return null`, the missing `role="dialog"`, the absent Escape handling and
+  the raw `bg-black/50` are all untouched — this fix is confined to the copy path.
+- **The referral quest's completion trigger.** `onInviteSent` still fires from the separate
+  "Send Invite" action, so a failed copy no longer *claims* success but the quest's own
+  progression logic is unchanged.
+- **`document.execCommand` is deprecated,** and knowingly used. It is the only fallback
+  available on an insecure origin, it is guarded and its boolean result is respected, so a
+  browser that has removed it degrades to the error toast rather than a false success.
+- **No "select the link" auto-selection.** The audit suggested it; the error toast tells the
+  user to select manually instead. Auto-selecting inside a non-focus-managed dialog would
+  interact with the open P2-7 focus work, so it was left to that change.
