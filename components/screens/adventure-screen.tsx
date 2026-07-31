@@ -7,7 +7,7 @@ import { Progress, SegmentedProgress, Tag } from '@/components/primitives'
 import { PixelSprite } from '@/components/pixel-sprite'
 import { BottomSheet } from '@/components/ui/sheet'
 import { useStore } from '@/lib/store'
-import type { Quest } from '@/lib/mock-data'
+import { DEFAULT_SURVEY, type Quest } from '@/lib/mock-data'
 
 const tabs = ['Story', 'Daily', 'Weekly', 'Event', 'Side'] as const
 
@@ -52,10 +52,66 @@ function QuestRow({ quest, onOpen }: { quest: Quest; onOpen: () => void }) {
   )
 }
 
+function QuestSurvey({
+  survey,
+  answers,
+  onAnswer,
+}: {
+  survey: NonNullable<Quest['survey']>
+  answers: Record<string, string>
+  onAnswer: (questionId: string, option: string) => void
+}) {
+  return (
+    <div className="flex flex-col gap-2">
+      <span className="text-xs text-muted-foreground">Survey</span>
+      <div className="flex flex-col gap-4">
+        {survey.map((q, i) => (
+          <div key={q.id} className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4">
+            <p className="text-sm font-medium text-pretty">
+              <span className="text-muted-foreground">{i + 1}. </span>
+              {q.prompt}
+            </p>
+            <div className="flex flex-col gap-2">
+              {q.options.map((opt) => {
+                const selected = answers[q.id] === opt
+                return (
+                  <button
+                    key={opt}
+                    onClick={() => onAnswer(q.id, opt)}
+                    className={`flex items-center gap-2.5 rounded-md border px-3 py-2.5 text-left text-sm transition-colors duration-100 ${
+                      selected
+                        ? 'border-foreground bg-surface text-foreground'
+                        : 'border-border text-muted-foreground hover:border-ring'
+                    }`}
+                  >
+                    <span
+                      className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border ${
+                        selected ? 'border-foreground' : 'border-border'
+                      }`}
+                    >
+                      {selected && <span className="h-2 w-2 rounded-full bg-foreground" />}
+                    </span>
+                    {opt}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function QuestDetail({ quest, onBack }: { quest: Quest; onBack: () => void }) {
   const { startQuest, completeQuest, toast } = useStore()
   const [busy, setBusy] = useState(false)
   const [xpBurst, setXpBurst] = useState(false)
+  const [answers, setAnswers] = useState<Record<string, string>>({})
+
+  const surveyQuestions = quest.survey?.length ? quest.survey : DEFAULT_SURVEY
+  const hasSurvey = quest.state === 'active'
+  const surveyComplete = surveyQuestions.every((q) => answers[q.id])
 
   const progressPct = quest.progress
     ? (quest.progress.current / quest.progress.total) * 100
@@ -88,6 +144,20 @@ function QuestDetail({ quest, onBack }: { quest: Quest; onBack: () => void }) {
       const loot = [`+${xp} XP`, `+${keys} Key${keys > 1 ? 's' : ''}`]
       if (chests > 0) loot.push(`+${chests} Chest`)
       toast({ title: 'Quest completed', description: loot.join(' · '), variant: 'success' })
+    } catch (err) {
+      if (err instanceof Error && err.message === 'NO_ENERGY') {
+        toast({
+          title: 'Not enough energy',
+          description: 'Recharge your energy before completing this quest.',
+          variant: 'error',
+        })
+      } else {
+        toast({
+          title: 'Could not complete quest',
+          description: 'Something went wrong. Please try again.',
+          variant: 'error',
+        })
+      }
     } finally {
       setBusy(false)
     }
@@ -168,24 +238,36 @@ function QuestDetail({ quest, onBack }: { quest: Quest; onBack: () => void }) {
           </div>
           <SegmentedProgress value={progressPct} segments={16} />
         </div>
+
+        {hasSurvey && (
+          <QuestSurvey
+            survey={surveyQuestions}
+            answers={answers}
+            onAnswer={(qid, opt) => setAnswers((prev) => ({ ...prev, [qid]: opt }))}
+          />
+        )}
       </div>
 
+      <div aria-hidden className="mt-auto min-h-8" />
+
       {quest.state === 'done' ? (
-        <div className="mt-auto flex items-center justify-center gap-1.5 rounded-lg border border-border bg-card px-5 py-4 text-[15px] font-medium text-muted-foreground">
+        <div className="flex items-center justify-center gap-1.5 rounded-lg border border-border bg-card px-5 py-4 text-[15px] font-medium text-muted-foreground">
           <Check className="h-5 w-5" />
           Quest Completed
         </div>
       ) : quest.state === 'active' ? (
         <button
           onClick={handleComplete}
-          disabled={busy}
+          disabled={busy || !surveyComplete}
           aria-busy={busy}
-          className="group mt-auto flex items-center justify-center gap-1.5 rounded-lg bg-primary px-5 py-4 text-[15px] font-medium text-primary-foreground transition-all duration-100 active:scale-[0.99] disabled:opacity-60"
+          className="group flex items-center justify-center gap-1.5 rounded-lg bg-primary px-5 py-4 text-[15px] font-medium text-primary-foreground transition-all duration-100 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
         >
           {busy ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" /> Completing…
             </>
+          ) : !surveyComplete ? (
+            'Answer all questions'
           ) : (
             <>
               Complete Quest
@@ -198,7 +280,7 @@ function QuestDetail({ quest, onBack }: { quest: Quest; onBack: () => void }) {
           onClick={handleStart}
           disabled={busy || !quest.available}
           aria-busy={busy}
-          className="group mt-auto flex items-center justify-center gap-1.5 rounded-lg bg-primary px-5 py-4 text-[15px] font-medium text-primary-foreground transition-all duration-100 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
+          className="group flex items-center justify-center gap-1.5 rounded-lg bg-primary px-5 py-4 text-[15px] font-medium text-primary-foreground transition-all duration-100 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
         >
           {busy ? (
             <>
