@@ -18,7 +18,8 @@
   --color-ring: var(--ring);
 
   --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-plex-mono);
+  --font-mono: var(--font-geist-mono);
+  --font-pixel: var(--font-silkscreen);
 
   --radius-sm: 0px;
   --radius-md: 0px;
@@ -67,6 +68,18 @@
   .tnum {
     font-variant-numeric: tabular-nums;
     letter-spacing: 0.02em;
+  }
+  /* Silkscreen pixel label — retro game metadata (LEVEL, XP, badges, counts). */
+  .pixel-label {
+    font-family: var(--font-pixel);
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    line-height: 1;
+  }
+  /* uppercase micro-label rhythm used across section overlines */
+  .overline {
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
   }
   .no-scrollbar::-webkit-scrollbar {
     display: none;

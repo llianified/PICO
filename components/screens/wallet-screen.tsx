@@ -16,16 +16,16 @@ const transactions = [
 
 export function WalletScreen() {
   return (
-    <div className="flex flex-col gap-6 px-6 pb-6 pt-2">
+    <div className="flex flex-col gap-8 px-6 pb-6 pt-2">
       <header className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold tracking-tight">Wallet</h1>
+        <h1 className="text-3xl font-medium tracking-tight">Wallet</h1>
         <CreditCard className="h-5 w-5 text-muted-foreground" />
       </header>
 
       {/* Balance */}
       <div className="flex flex-col items-center gap-2 rounded-lg border border-border bg-card px-4 py-8 text-center">
-        <span className="text-xs text-muted-foreground">Withdrawable Balance</span>
-        <span className="font-mono text-4xl font-semibold tracking-tight tnum">Rp84.500</span>
+        <span className="overline text-[10px] text-muted-foreground">Withdrawable Balance</span>
+        <span className="font-mono text-4xl font-medium tracking-tight tnum">Rp84.500</span>
         <span className="font-mono text-[11px] text-muted-foreground">
           Total Earned: Rp1.245.000
         </span>

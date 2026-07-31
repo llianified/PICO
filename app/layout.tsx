@@ -1,6 +1,6 @@
 import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
-import { Geist, IBM_Plex_Mono } from 'next/font/google'
+import { Geist, Geist_Mono, Silkscreen } from 'next/font/google'
 import './globals.css'
 
 const geistSans = Geist({
@@ -8,10 +8,17 @@ const geistSans = Geist({
   variable: '--font-geist-sans',
 })
 
-const plexMono = IBM_Plex_Mono({
+const geistMono = Geist_Mono({
   subsets: ['latin'],
   weight: ['400', '500', '600'],
-  variable: '--font-plex-mono',
+  variable: '--font-geist-mono',
+})
+
+// Retro pixel font — used ONLY for small game labels (LEVEL, XP, badges, counts).
+const silkscreen = Silkscreen({
+  subsets: ['latin'],
+  weight: ['400', '700'],
+  variable: '--font-silkscreen',
 })
 
 export const metadata: Metadata = {
@@ -33,7 +40,10 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${plexMono.variable} bg-background`}>
+    <html
+      lang="en"
+      className={`${geistSans.variable} ${geistMono.variable} ${silkscreen.variable} bg-background`}
+    >
       <body className="font-sans antialiased">
         {children}
         {process.env.NODE_ENV === 'production' && <Analytics />}

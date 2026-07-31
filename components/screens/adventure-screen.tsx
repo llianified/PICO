@@ -129,9 +129,9 @@ function QuestDetail({ quest, onBack }: { quest: Quest; onBack: () => void }) {
         <div className="flex h-20 w-20 items-center justify-center rounded-xl border border-border bg-card">
           <PixelSprite name="chest" size={44} />
         </div>
-        <h2 className="text-xl font-semibold tracking-tight text-balance">{quest.title}</h2>
+        <h2 className="text-2xl font-medium tracking-tight text-balance">{quest.title}</h2>
         <Tag>{quest.tag} QUEST</Tag>
-        <p className="max-w-[16rem] text-sm leading-relaxed text-muted-foreground text-pretty">
+        <p className="max-w-[17rem] text-sm leading-7 text-muted-foreground text-pretty">
           {quest.detail}
         </p>
       </div>
@@ -180,9 +180,9 @@ export function AdventureScreen() {
   }
 
   return (
-    <div className="flex flex-col gap-5 px-6 pb-6 pt-2">
+    <div className="flex flex-col gap-6 px-6 pb-6 pt-2">
       <header className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold tracking-tight">Adventure</h1>
+        <h1 className="text-3xl font-medium tracking-tight">Adventure</h1>
         <button
           className="flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground"
           aria-label="Help"

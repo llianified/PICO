@@ -21,8 +21,8 @@ export function HomeScreen() {
       {/* Greeting */}
       <header className="flex items-start justify-between">
         <div>
-          <p className="text-sm text-muted-foreground">Good Evening,</p>
-          <h1 className="text-2xl font-semibold tracking-tight text-balance">Explorer</h1>
+          <p className="text-[13px] text-muted-foreground">Good Evening,</p>
+          <h1 className="mt-0.5 text-3xl font-medium tracking-tight text-balance">Explorer</h1>
         </div>
         <button
           className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-lg border border-border bg-card transition-colors duration-150 hover:border-ring active:scale-95"
@@ -40,12 +40,10 @@ export function HomeScreen() {
 
       {/* Level / XP */}
       <section className="flex flex-col gap-3">
-        <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
-          Level 12
-        </span>
+        <span className="pixel-label text-[9px] text-muted-foreground">Level 12</span>
         <div className="flex items-baseline gap-2">
-          <span className="font-mono text-4xl font-semibold tracking-tight tnum">142,550</span>
-          <span className="font-mono text-sm text-muted-foreground">XP</span>
+          <span className="font-mono text-4xl font-medium tracking-tight tnum">142,550</span>
+          <span className="pixel-label text-[9px] text-muted-foreground">XP</span>
         </div>
         <SegmentedProgress value={35} segments={24} />
         <div className="flex justify-between font-mono text-xs text-muted-foreground tnum">
@@ -68,7 +66,7 @@ export function HomeScreen() {
             <span className="text-xs">Daily Streak</span>
           </div>
           <div className="flex items-baseline gap-1.5">
-            <span className="font-mono text-3xl font-semibold tnum">12</span>
+            <span className="font-mono text-3xl font-medium tnum">12</span>
             <span className="text-xs text-muted-foreground">days</span>
           </div>
         </div>
@@ -79,10 +77,10 @@ export function HomeScreen() {
           </div>
           <div>
             <div className="flex items-baseline gap-1.5">
-              <span className="font-mono text-3xl font-semibold tnum">24</span>
+              <span className="font-mono text-3xl font-medium tnum">24</span>
               <span className="font-mono text-sm text-muted-foreground">/ 30</span>
             </div>
-            <p className="mt-1 font-mono text-[10px] text-muted-foreground">+1 in 05:30</p>
+            <p className="pixel-label mt-1.5 text-[8px] text-muted-foreground">+1 in 05:30</p>
           </div>
         </div>
       </section>
