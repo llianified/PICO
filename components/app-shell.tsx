@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { Home, Compass, Package, Wallet, User } from 'lucide-react'
-import { StatusBar } from '@/components/primitives'
 import { HomeScreen } from '@/components/screens/home-screen'
 import { AdventureScreen } from '@/components/screens/adventure-screen'
 import { InventoryScreen } from '@/components/screens/inventory-screen'
@@ -23,8 +22,6 @@ export function AppShell() {
 
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-[420px] flex-col bg-background md:my-6 md:min-h-0 md:h-[860px] md:rounded-3xl md:border md:border-border md:shadow-2xl md:overflow-hidden">
-      <StatusBar />
-
       <main className="no-scrollbar flex-1 overflow-y-auto">
         <ActiveScreen />
       </main>
