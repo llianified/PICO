@@ -10,9 +10,23 @@ import { useStore, avatarSprite, ENERGY_MAX } from '@/lib/store'
 
 /** Compact "time ago" label for the Recent Rewards feed. */
 function TimeAgoDisplay({ ts }: { ts: number }) {
-  const [display, setDisplay] = useState('just now')
+  const [display, setDisplay] = useState(() => {
+    const diff = Math.max(0, Date.now() - ts)
+    const mins = Math.floor(diff / 60000)
+    if (mins < 1) return 'just now'
+    else if (mins < 60) return `${mins}m ago`
+    else {
+      const hrs = Math.floor(mins / 60)
+      if (hrs < 24) return `${hrs}h ago`
+      else return `${Math.floor(hrs / 24)}d ago`
+    }
+  })
   
   useEffect(() => {
+    // Only update if older than 1 minute (to avoid stale display)
+    const diff = Date.now() - ts
+    if (diff < 60000) return
+    
     const update = () => {
       const diff = Math.max(0, Date.now() - ts)
       const mins = Math.floor(diff / 60000)
@@ -25,7 +39,6 @@ function TimeAgoDisplay({ ts }: { ts: number }) {
       }
     }
     
-    update()
     const interval = setInterval(update, 60000)
     return () => clearInterval(interval)
   }, [ts])
@@ -45,7 +58,12 @@ function EnergyCard({ energy, energyMax, nextEnergyAt }: { energy: number; energ
 
     const updateTimer = () => {
       const now = Date.now()
-      const remaining = Math.max(0, nextEnergyAt - now)
+      // Handle system wake-up: if remaining time somehow went negative, reset
+      if (nextEnergyAt < now) {
+        setTimeRemaining('00:00')
+        return
+      }
+      const remaining = nextEnergyAt - now
       const mins = Math.floor(remaining / 60000)
       const secs = Math.floor((remaining % 60000) / 1000)
       setTimeRemaining(`${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`)

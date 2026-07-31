@@ -29,7 +29,7 @@ export function Modal({
   return (
     <AnimatePresence>
       {open && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center p-6">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
           <motion.div
             className="absolute inset-0 bg-background/70 backdrop-blur-sm"
             initial={{ opacity: 0 }}

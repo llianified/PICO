@@ -13,6 +13,7 @@ import {
 import {
   avatars,
   computeStreak,
+  formatCompact,
   formatRp,
   initialAchievements,
   initialInventoryItems,
@@ -147,6 +148,7 @@ type StoreValue = {
   withdraw: (amount: number, methodId: string) => Promise<void>
   connectPaymentMethod: (id: string) => Promise<void>
   startQuest: (id: string) => Promise<void>
+  setQuestProgress: (id: string, newProgress: number) => void
   completeQuest: (id: string) => Promise<QuestReward>
   openChest: () => Promise<RewardEvent>
   equipItem: (id: string) => void
@@ -235,6 +237,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [collectionOwned, setCollectionOwned] = useState(12)
   const collectionTotal = 48
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>(initialInventoryItems)
+  const inventoryItemsRef = useRef(inventoryItems)
+  inventoryItemsRef.current = inventoryItems
   // Nothing equipped on a fresh start — the player has no items yet.
   const [equipped, setEquipped] = useState<Record<string, string>>({})
 
@@ -253,6 +257,26 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [achievementEvent, setAchievementEvent] = useState<AchievementEvent>(null)
 
   const toastId = useRef(0)
+  const achievementQueueRef = useRef<{ title: string; subtitle: string }[]>([])
+  const achievementTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Process next achievement in queue
+  const processAchievementQueue = useCallback(() => {
+    if (achievementQueueRef.current.length === 0) {
+      achievementTimeoutRef.current = null
+      return
+    }
+    
+    const next = achievementQueueRef.current.shift()!
+    setBadges((b) => b + 1)
+    setAchievementEvent({ title: next.title, subtitle: next.subtitle })
+    
+    // Show for 2.5s then process next
+    achievementTimeoutRef.current = setTimeout(() => {
+      setAchievementEvent(null)
+      setTimeout(processAchievementQueue, 300)
+    }, 2500)
+  }, [])
 
   const toast = useCallback((t: Omit<Toast, 'id'>) => {
     const id = ++toastId.current
@@ -282,18 +306,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   // Record today's login exactly once. Adding a new day grows "days active";
   // the streak recomputes automatically from the login history.
-  const recordDailyLogin = useCallback(() => {
+  useEffect(() => {
     const today = toDayKey(new Date())
     setLoginDates((prev) => {
       if (prev.includes(today)) return prev
       setDaysActive((d) => d + 1)
       return [today, ...prev]
     })
-  }, [])
-
-  useEffect(() => {
-    recordDailyLogin()
-  }, [recordDailyLogin])
+  }, []) // Empty dependency - runs only once on mount
 
   // Auto-unlock Story quests as the player levels up. Runs whenever the level
   // changes, flipping `available` on any Story quest whose level gate is met
@@ -434,15 +454,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         const current = Math.min(a.total, a.current + amount)
         const unlocked = current >= a.total
         if (unlocked) {
-          setTimeout(() => {
-            setBadges((b) => b + 1)
-            setAchievementEvent({ title: a.title, subtitle: 'Achievement unlocked' })
-          }, 500)
+          // Add to queue (or start processing if queue is empty)
+          const wasEmpty = achievementQueueRef.current.length === 0
+          achievementQueueRef.current.push({ title: a.title, subtitle: 'Achievement unlocked' })
+          if (wasEmpty && !achievementTimeoutRef.current) {
+            processAchievementQueue()
+          }
         }
         return { ...a, current, unlocked }
       }),
     )
-  }, [])
+  }, [processAchievementQueue])
 
   const withdraw = useCallback(
     async (amount: number, methodId: string) => {
@@ -532,15 +554,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (energyRef.current < ENERGY_COST) {
         throw new Error('NO_ENERGY')
       }
+      // Lock energy immediately to prevent race condition during async delay
+      consumeEnergy(ENERGY_COST)
       await delay(1400)
       const snapshot = questsRef.current
       const target = snapshot.find((q) => q.id === id)
       if (!target || target.state === 'done') {
         return { xp: 0, keys: 0, chests: 0, coins: 0 }
       }
-
-      // Spend energy for the completed objective.
-      consumeEnergy(ENERGY_COST)
       setQuestsCompletedTotal((n) => n + 1)
 
       const primary = rollQuestReward(target.xpValue)
@@ -596,6 +617,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const openChest = useCallback(async (): Promise<RewardEvent> => {
     await delay(1500)
+    
+    // Re-validate cap after async delay to prevent exceeding inventory limit
+    if (inventoryItemsRef.current.length >= INVENTORY_CAP) {
+      throw new Error('INVENTORY_FULL')
+    }
+    
     const coinReward = 500
     setChests((c) => Math.max(0, c - 1))
     setKeys((k) => Math.max(0, k - 1))
@@ -671,6 +698,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (data.avatarId !== undefined) setAvatarId(data.avatarId)
   }, [])
 
+  const setLanguageHandler = useCallback((l: string) => setLanguage(l), [])
+  const setThemeHandler = useCallback((t: string) => setTheme(t), [])
+
   const toggleNotifications = useCallback(() => setNotificationsEnabled((v) => !v), [])
   const toggleSound = useCallback(() => setSoundEnabled((v) => !v), [])
 
@@ -735,6 +765,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       clearReward,
       clearAchievement,
       claimAchievement,
+      processAchievementQueue,
       addXp,
       withdraw,
       connectPaymentMethod,
@@ -746,8 +777,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       buyKey,
       buyChest,
       updateProfile,
-      setLanguage,
-      setTheme,
+      setLanguage: setLanguageHandler,
+      setTheme: setThemeHandler,
       toggleNotifications,
       toggleSound,
     }),
@@ -795,6 +826,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       clearReward,
       clearAchievement,
       claimAchievement,
+      processAchievementQueue,
       addXp,
       withdraw,
       connectPaymentMethod,
@@ -806,6 +838,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       buyKey,
       buyChest,
       updateProfile,
+      setLanguageHandler,
+      setThemeHandler,
       toggleNotifications,
       toggleSound,
     ],

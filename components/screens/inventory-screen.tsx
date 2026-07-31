@@ -30,6 +30,8 @@ export function InventoryScreen() {
   } = useStore()
 
   const [opening, setOpening] = useState(false)
+  const [buyingKey, setBuyingKey] = useState(false)
+  const [buyingChest, setBuyingChest] = useState(false)
   const [activeItem, setActiveItem] = useState<InventoryItem | null>(null)
   const [allOpen, setAllOpen] = useState(false)
 
@@ -64,27 +66,50 @@ export function InventoryScreen() {
     setOpening(true)
     try {
       await openChest()
+    } catch (err) {
+      const error = err as Error
+      if (error.message === 'INVENTORY_FULL') {
+        toast({ title: 'Inventory full', description: 'Make room before opening more chests.', variant: 'error' })
+      } else {
+        toast({ title: 'Failed to open chest', description: 'Please try again.', variant: 'error' })
+      }
     } finally {
       setOpening(false)
     }
   }
 
   async function handleBuyKey() {
+    if (buyingKey) return // Prevent double-click
     if (coins < KEY_COST) {
       toast({ title: 'Not enough coins', description: `You need ${formatCompact(KEY_COST)} coins.`, variant: 'error' })
-      throw new Error('insufficient coins')
+      return
     }
-    await buyKey()
-    toast({ title: 'Key purchased', description: `-${formatCompact(KEY_COST)} coins · +1 Key`, variant: 'success' })
+    setBuyingKey(true)
+    try {
+      await buyKey()
+      toast({ title: 'Key purchased', description: `-${formatCompact(KEY_COST)} coins · +1 Key`, variant: 'success' })
+    } catch (err) {
+      toast({ title: 'Purchase failed', description: 'Please try again.', variant: 'error' })
+    } finally {
+      setBuyingKey(false)
+    }
   }
 
   async function handleBuyChest() {
+    if (buyingChest) return // Prevent double-click
     if (coins < CHEST_COST) {
       toast({ title: 'Not enough coins', description: `You need ${formatCompact(CHEST_COST)} coins.`, variant: 'error' })
-      throw new Error('insufficient coins')
+      return
     }
-    await buyChest()
-    toast({ title: 'Chest purchased', description: `-${formatCompact(CHEST_COST)} coins · +1 Chest`, variant: 'success' })
+    setBuyingChest(true)
+    try {
+      await buyChest()
+      toast({ title: 'Chest purchased', description: `-${formatCompact(CHEST_COST)} coins · +1 Chest`, variant: 'success' })
+    } catch (err) {
+      toast({ title: 'Purchase failed', description: 'Please try again.', variant: 'error' })
+    } finally {
+      setBuyingChest(false)
+    }
   }
 
   return (
@@ -135,14 +160,16 @@ export function InventoryScreen() {
             sprite="key"
             label="Buy Key"
             cost={KEY_COST}
-            affordable={coins >= KEY_COST}
+            affordable={coins >= KEY_COST && !buyingKey}
+            loading={buyingKey}
             onBuy={handleBuyKey}
           />
           <ShopCard
             sprite="chest"
             label="Buy Chest"
             cost={CHEST_COST}
-            affordable={coins >= CHEST_COST}
+            affordable={coins >= CHEST_COST && !buyingChest}
+            loading={buyingChest}
             onBuy={handleBuyChest}
           />
         </div>
@@ -329,12 +356,14 @@ function ShopCard({
   label,
   cost,
   affordable,
+  loading,
   onBuy,
 }: {
   sprite: SpriteName
   label: string
   cost: number
   affordable: boolean
+  loading?: boolean
   onBuy: () => Promise<void>
 }) {
   return (
@@ -348,7 +377,7 @@ function ShopCard({
       </div>
       <ActionButton
         onAction={onBuy}
-        disabled={!affordable}
+        disabled={!affordable || loading}
         loadingText="Buying"
         successText="Bought"
         className="h-9 w-full rounded-md bg-primary text-xs font-medium text-primary-foreground disabled:opacity-50"
