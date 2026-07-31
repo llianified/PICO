@@ -30,11 +30,13 @@ export function HomeScreen() {
     streak,
     energy,
     energyMax,
+    equippedItems,
     navigate,
   } = useStore()
 
   const avatar = avatarSprite(avatarId)
   const isDefaultAvatar = avatarId === 'explorer'
+  const equippedGear = equippedItems[0]
   const xpPercent = Math.round((levelXp / levelXpNeeded) * 100)
 
   return (
@@ -47,7 +49,7 @@ export function HomeScreen() {
         </div>
         <button
           onClick={() => navigate('profile')}
-          className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-card transition-colors duration-150 hover:border-ring active:scale-95"
+          className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-border bg-card transition-colors duration-150 hover:border-ring active:scale-95"
           aria-label="Open profile"
         >
           {isDefaultAvatar ? (
@@ -60,6 +62,15 @@ export function HomeScreen() {
             />
           ) : (
             <PixelSprite name={avatar.sprite} size={34} />
+          )}
+          {equippedGear && (
+            <span
+              className="absolute -bottom-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-md border border-border bg-surface"
+              title={`Equipped: ${equippedGear.name}`}
+            >
+              <PixelSprite name={equippedGear.sprite} size={12} />
+              <span className="sr-only">Equipped {equippedGear.name}</span>
+            </span>
           )}
         </button>
       </header>

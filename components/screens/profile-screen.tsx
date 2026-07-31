@@ -23,6 +23,7 @@ export function ProfileScreen() {
     badges,
     achievements,
     quests,
+    equippedItems,
   } = useStore()
 
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -76,6 +77,12 @@ export function ProfileScreen() {
           <span className="absolute bottom-0 right-0 flex h-5 w-5 items-center justify-center rounded-tl-md border-l border-t border-border bg-surface text-muted-foreground">
             <Pencil className="h-2.5 w-2.5" />
           </span>
+          {equippedItems[0] && (
+            <span className="absolute left-0 top-0 flex h-5 w-5 items-center justify-center rounded-br-md border-b border-r border-border bg-surface">
+              <PixelSprite name={equippedItems[0].sprite} size={12} />
+              <span className="sr-only">Equipped {equippedItems[0].name}</span>
+            </span>
+          )}
         </button>
         <div className="min-w-0 flex-1">
           <span className="pixel-label text-[10px] text-muted-foreground">Level {level}</span>
@@ -104,6 +111,38 @@ export function ProfileScreen() {
             </span>
           </div>
         ))}
+      </section>
+
+      {/* Equipped gear */}
+      <section className="flex flex-col gap-3">
+        <h2 className="text-sm font-medium">Equipped Gear</h2>
+        {equippedItems.length === 0 ? (
+          <p className="rounded-lg border border-dashed border-border bg-card px-4 py-5 text-center text-xs text-muted-foreground text-pretty">
+            Nothing equipped yet. Equip an item from your inventory to gear up your avatar.
+          </p>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {equippedItems.map((item) => (
+              <div
+                key={item.id}
+                className="flex items-center gap-3 rounded-lg border border-border bg-card p-4"
+              >
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-border bg-surface">
+                  <PixelSprite name={item.sprite} size={20} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium">{item.name}</p>
+                  <p className="pixel-label mt-1 truncate text-[9px] text-muted-foreground">
+                    {item.rarity} · {item.slot}
+                  </p>
+                </div>
+                <span className="pixel-label shrink-0 rounded-full border border-border bg-surface px-1.5 py-0.5 text-[8px] text-foreground">
+                  Equipped
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* Achievements */}
