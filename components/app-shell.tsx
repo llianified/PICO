@@ -1,12 +1,14 @@
 'use client'
 
-import { useState } from 'react'
 import { Home, Compass, Package, Wallet, User } from 'lucide-react'
 import { HomeScreen } from '@/components/screens/home-screen'
 import { AdventureScreen } from '@/components/screens/adventure-screen'
 import { InventoryScreen } from '@/components/screens/inventory-screen'
 import { WalletScreen } from '@/components/screens/wallet-screen'
 import { ProfileScreen } from '@/components/screens/profile-screen'
+import { Toaster } from '@/components/ui/toaster'
+import { GlobalOverlays } from '@/components/overlays'
+import { StoreProvider, useStore, type TabId } from '@/lib/store'
 
 const nav = [
   { id: 'home', label: 'Home', icon: Home, Screen: HomeScreen },
@@ -16,12 +18,12 @@ const nav = [
   { id: 'profile', label: 'Profile', icon: User, Screen: ProfileScreen },
 ] as const
 
-export function AppShell() {
-  const [active, setActive] = useState<(typeof nav)[number]['id']>('home')
-  const ActiveScreen = nav.find((n) => n.id === active)!.Screen
+function Shell() {
+  const { tab, navigate } = useStore()
+  const ActiveScreen = nav.find((n) => n.id === tab)!.Screen
 
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-[420px] flex-col bg-background md:my-6 md:min-h-0 md:h-[860px] md:rounded-3xl md:border md:border-border md:shadow-2xl md:overflow-hidden">
+    <div className="relative mx-auto flex min-h-dvh w-full max-w-[420px] flex-col bg-background md:my-6 md:min-h-0 md:h-[860px] md:rounded-3xl md:border md:border-border md:shadow-2xl md:overflow-hidden">
       <main className="no-scrollbar flex-1 overflow-y-auto pt-[env(safe-area-inset-top)]">
         <ActiveScreen />
       </main>
@@ -30,11 +32,11 @@ export function AppShell() {
       <nav className="sticky bottom-0 flex items-center justify-around border-t border-border bg-background/90 px-2 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur-md">
         {nav.map((item) => {
           const Icon = item.icon
-          const isActive = item.id === active
+          const isActive = item.id === tab
           return (
             <button
               key={item.id}
-              onClick={() => setActive(item.id)}
+              onClick={() => navigate(item.id as TabId)}
               className={`group relative flex flex-1 flex-col items-center gap-1 py-1 transition-colors duration-150 ${
                 isActive ? 'text-foreground' : 'text-muted-foreground hover:text-foreground/70'
               }`}
@@ -55,6 +57,17 @@ export function AppShell() {
           )
         })}
       </nav>
+
+      <Toaster />
+      <GlobalOverlays />
     </div>
+  )
+}
+
+export function AppShell() {
+  return (
+    <StoreProvider>
+      <Shell />
+    </StoreProvider>
   )
 }

@@ -20,7 +20,7 @@ export function SegmentedProgress({
         <span
           key={i}
           className={cn(
-            'h-2 flex-1 rounded-[1px]',
+            'h-2 flex-1 rounded-[1px] transition-colors duration-500',
             i < filled ? 'bg-foreground' : 'bg-border',
           )}
         />
