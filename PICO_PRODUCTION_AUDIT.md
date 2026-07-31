@@ -8,7 +8,9 @@
 
 **Verification method:** static review + `tsc --noEmit` (passes clean) + live browser walkthrough of quest → reward → wallet → withdraw → inventory flows at 384×639.
 
-> No files were modified during this audit. This document is the only artifact added.
+> No files were modified during the audit itself. This document was the only artifact added.
+
+> **Remediation update — 2026-07-31, branch `production-audit-remediation`.** All five P0 items have since been addressed on the front end. P0-1, P0-4 and P0-5 are fully closed. P0-2 and P0-3 are **mitigated, not closed** — they cannot be genuinely fixed without a backend, so the fraud and free-money paths were removed rather than the underlying architecture changed. Per-issue status is recorded inline below; the full change log is in [`PICO_P0_REMEDIATION.md`](./PICO_P0_REMEDIATION.md).
 
 ---
 
@@ -46,6 +48,7 @@ Everything below is real and worth fixing, but items P0-2 and P0-3 in particular
 
 ### P0-1 · Hydration failure crashes the React tree on every page load
 
+- **Status:** ✅ **Fixed.** `initialRewardsFeed` is now `[]`, so no `Date.now()` runs at module scope. `TimeAgoDisplay` renders a stable `—` placeholder on the first pass and resolves the real label in `useEffect` after mount. Verified live: the console is clean and the `nextjs-portal` overlay is gone.
 - **Severity:** P0
 - **Files:** `lib/mock-data.ts:398,406,414` (`initialRewardsFeed`), `components/screens/home-screen.tsx:120`
 - **Root cause:** `initialRewardsFeed` calls `Date.now()` at **module scope**. The server evaluates it at request time and the client re-evaluates it at hydration time, producing different `createdAt` values. `TimeAgoDisplay` renders those into text, so server HTML and client HTML disagree.
@@ -56,6 +59,7 @@ Everything below is real and worth fixing, but items P0-2 and P0-3 in particular
 
 ### P0-2 · "Watch Sponsor Video" pays out without ever showing a video
 
+- **Status:** ⚠️ **Mitigated — the payout path is removed, the feature is not built.** A `REWARDED_VIDEO_ENABLED` flag (default `false`) filters every `state: 'video'` quest out of the catalogue, so the quest is no longer reachable, and `startQuest` throws `VIDEO_UNAVAILABLE` as a backstop if one ever does reach the store. **No ad provider, player, or server-verified completion callback exists.** Do not flip the flag until all three are in place — flipping it alone restores the original fraud.
 - **Severity:** P0
 - **Files:** `components/screens/adventure-screen.tsx:330-352`, `lib/mock-data.ts:137-147`
 - **Root cause:** `state: 'video'` only changes the button *label* to "Watch Video". `handleStart` calls the same `startQuest()` as any other quest; there is no player, no ad SDK, no completion callback, no watch-duration gate.
@@ -66,6 +70,7 @@ Everything below is real and worth fixing, but items P0-2 and P0-3 in particular
 
 ### P0-3 · Withdrawals mutate balance client-side with no server authority or idempotency
 
+- **Status:** ⚠️ **Hardened — still client-authoritative.** Validation moved out of the sheet and into `withdraw()` next to the ledger it guards: `MIN_WITHDRAW` now lives in `lib/store.tsx`, amounts must be positive finite integers, balance and payment-method checks read live state via refs (never caller-supplied values), rules are re-checked *after* the await, an in-flight guard blocks concurrent submits, and an idempotency key makes a retry of the same attempt a no-op. Rejections surface as a typed `WithdrawError`. **This removes the mint/double-spend paths but is not server authority** — a determined user can still edit client memory. Closing this requires the Phase 2 ledger.
 - **Severity:** P0
 - **Files:** `lib/store.tsx:469-486`, `components/wallet/withdraw-sheet.tsx:52-76`
 - **Root cause:** `withdraw()` performs no server call. It resolves a fake delay, then subtracts from local state. All validation (`MIN_WITHDRAW`, balance check) lives in the client component and is trivially bypassed. There is no idempotency key, so a retry double-spends.
@@ -76,6 +81,7 @@ Everything below is real and worth fixing, but items P0-2 and P0-3 in particular
 
 ### P0-4 · Seeded "Recent Rewards" feed fabricates rewards the player never earned
 
+- **Status:** ✅ **Fixed.** `initialRewardsFeed = []` with a comment recording both reasons it must stay empty (trust *and* the hydration bug in P0-1). Home renders a new `EmptyRewards` state — "No rewards yet" plus a "Start a quest" button routing to Adventure. Verified live on a fresh account: Home and Wallet no longer contradict each other.
 - **Severity:** P0 (data integrity / trust)
 - **Files:** `lib/mock-data.ts:391-415`, consumed at `components/screens/home-screen.tsx:196-224`
 - **Root cause:** `initialRewardsFeed` ships three hardcoded fake entries, contradicting the genuinely-empty `initialTransactions`, `initialInventoryItems`, and zeroed XP.
@@ -86,6 +92,7 @@ Everything below is real and worth fixing, but items P0-2 and P0-3 in particular
 
 ### P0-5 · Seeded inventory/collection counters contradict the empty inventory
 
+- **Status:** ✅ **Fixed.** `artifacts`, `badges` and `collectionOwned` are no longer stored — they are `useMemo` values derived from `inventoryItems` and `achievements`, so drift is now structurally impossible rather than merely corrected. The `setArtifacts`/`setBadges`/`setCollectionOwned` calls in `claimAchievement`, the achievement queue, and `openChest` were removed. `chests=2, keys=1, coins=5000` are kept as a deliberate, documented starter grant so a new player can open their first chest. Verified live: Artifacts 0, Badges 0, Collections 0 / 48 above the empty inventory.
 - **Severity:** P0 (data integrity)
 - **Files:** `lib/store.tsx:232-239`
 - **Root cause:** Hardcoded starting state `chests=2, keys=1, coins=5000, artifacts=1, badges=1, collectionOwned=12` while `initialInventoryItems = []` and `initialAchievements` are all unclaimed.
@@ -327,13 +334,15 @@ Also relevant: with no persistence (see the architectural note), a Mini App that
 
 The UI layer would score in the 80s on its own. The score is dominated by the absence of a backend and by economy logic that is exploitable and self-contradictory.
 
+**Post-remediation (P0 pass only):** roughly **41 / 100**. Data consistency moves 15 → 80 (seed contradictions eliminated and the counters are now derived, so they cannot drift again), core flow correctness 26 → 45 (video quest withdrawn, withdraw validation enforced at the store), security 8 → 22 (no client-side mint or double-spend, though still not server-authoritative). **Persistence & backend stays at 5** — nothing in this pass added a server, and that single dimension is what caps the score. The remaining ceiling is architectural, not cosmetic.
+
 ---
 
 ## 2. Estimated effort to fix
 
 | Priority | Scope | Effort |
 |---|---|---|
-| **P0** | 5 issues. P0-1/-4/-5 are contained front-end fixes (~0.5–1 day). **P0-2 and P0-3 require a backend, an ad-network integration, and a server-authoritative ledger.** | **3–4 weeks** (≈1 day without backend work) |
+| **P0** | 5 issues. P0-1/-4/-5 are contained front-end fixes (~0.5–1 day) — **now done**. **P0-2 and P0-3 require a backend, an ad-network integration, and a server-authoritative ledger** — mitigated on the client, remainder folded into Phase 2. | **3–4 weeks** (front-end portion ✅ complete) |
 | **P1** | 6 issues — withdraw dead-end, Max guard, level-up queue, tab derivation, type cleanup, theme wiring (theme needs light tokens across all components). | **4–6 days** |
 | **P2** | 12 issues — reward-preview parity, guard relocation, economy retune, Radix dialog migration, timer consolidation, derived counters. | **5–8 days** |
 | **P3** | 12 issues — mostly mechanical pruning and polish. | **2–3 days** |
@@ -349,19 +358,20 @@ The UI layer would score in the 80s on its own. The score is dominated by the ab
 
 Choose the backend and whether real money is in scope. Every P0 either depends on this or is invalidated by it. Do not build further UI on client-authoritative state.
 
-### Phase 1 — Stop the bleeding (~1 day, no backend needed)
+### Phase 1 — Stop the bleeding (~1 day, no backend needed) — ✅ **done**
 
-1. **P0-1** hydration (`Date.now()` out of module scope) — unblocks clean dev/QA and removes the click-blocking overlay
-2. **P0-4 + P0-5** seed-data consistency — empty feed, derived counters
-3. **P1-5** disable `ignoreBuildErrors` and fix what surfaces — do this early so later phases are type-checked
-4. **P0-2** *hide* the sponsor-video quest as an immediate stopgap against ad fraud
+1. ✅ **P0-1** hydration (`Date.now()` out of module scope) — unblocks clean dev/QA and removes the click-blocking overlay
+2. ✅ **P0-4 + P0-5** seed-data consistency — empty feed, derived counters
+3. ⬜ **P1-5** disable `ignoreBuildErrors` and fix what surfaces — do this early so later phases are type-checked *(still open)*
+4. ✅ **P0-2** *hide* the sponsor-video quest as an immediate stopgap against ad fraud
+5. ✅ **P0-3 (partial)** withdrawal validation moved into the store with an in-flight guard and idempotency keys — closes the client-side mint/double-spend paths ahead of the real ledger
 
-### Phase 2 — Backend foundation (~3–4 weeks)
+### Phase 2 — Backend foundation (~3–4 weeks) — ⬜ not started
 
-5. Auth + persistence (for Telegram, `initData` HMAC verification server-side)
-6. Server-authoritative economy ledger: XP, coins, balance, inventory
-7. **P0-3** real withdraw mutation with idempotency keys and server-side validation
-8. **P0-2** real rewarded-video provider with server-verified completion callback
+6. Auth + persistence (for Telegram, `initData` HMAC verification server-side)
+7. Server-authoritative economy ledger: XP, coins, balance, inventory
+8. **P0-3** real withdraw mutation with idempotency keys and server-side validation — the store's `withdraw()` already has the right shape (validate → await → re-validate → commit), so this becomes swapping the fake `delay()` for the mutation
+9. **P0-2** real rewarded-video provider with server-verified completion callback, then flip `REWARDED_VIDEO_ENABLED`
 
 ### Phase 3 — Repair core loops (~1 week)
 
