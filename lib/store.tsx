@@ -91,12 +91,15 @@ type StoreValue = {
   toasts: Toast[]
   levelUp: LevelUpEvent
   rewardEvent: RewardEvent
+  achievementEvent: AchievementEvent
 
   // actions
   toast: (t: Omit<Toast, 'id'>) => void
   dismissToast: (id: number) => void
   clearLevelUp: () => void
   clearReward: () => void
+  clearAchievement: () => void
+  claimAchievement: (id: string) => Promise<void>
 
   addXp: (amount: number) => void
   withdraw: (amount: number, methodId: string) => Promise<void>
@@ -153,6 +156,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([])
   const [levelUp, setLevelUp] = useState<LevelUpEvent>(null)
   const [rewardEvent, setRewardEvent] = useState<RewardEvent>(null)
+  const [achievementEvent, setAchievementEvent] = useState<AchievementEvent>(null)
 
   const toastId = useRef(0)
 
@@ -170,6 +174,26 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const clearLevelUp = useCallback(() => setLevelUp(null), [])
   const clearReward = useCallback(() => setRewardEvent(null), [])
+  const clearAchievement = useCallback(() => setAchievementEvent(null), [])
+
+  const claimAchievement = useCallback(async (id: string) => {
+    await delay(900)
+    let claimedTitle = ''
+    setAchievements((prev) =>
+      prev.map((a) => {
+        if (a.id !== id) return a
+        claimedTitle = a.title
+        return { ...a, claimed: true }
+      }),
+    )
+    setBadges((b) => b + 1)
+    if (claimedTitle) {
+      setAchievementEvent({
+        title: claimedTitle,
+        subtitle: 'Achievement reward claimed',
+      })
+    }
+  }, [])
 
   const addXp = useCallback((amount: number) => {
     setTotalXp((prev) => prev + amount)
@@ -206,7 +230,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         const current = Math.min(a.total, a.current + amount)
         const unlocked = current >= a.total
         if (unlocked) {
-          setTimeout(() => setBadges((b) => b + 1), 0)
+          setTimeout(() => {
+            setBadges((b) => b + 1)
+            setAchievementEvent({ title: a.title, subtitle: 'Achievement unlocked' })
+          }, 500)
         }
         return { ...a, current, unlocked }
       }),
@@ -352,10 +379,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       toasts,
       levelUp,
       rewardEvent,
+      achievementEvent,
       toast,
       dismissToast,
       clearLevelUp,
       clearReward,
+      clearAchievement,
+      claimAchievement,
       addXp,
       withdraw,
       connectPaymentMethod,
@@ -399,10 +429,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       toasts,
       levelUp,
       rewardEvent,
+      achievementEvent,
       toast,
       dismissToast,
       clearLevelUp,
       clearReward,
+      clearAchievement,
+      claimAchievement,
       addXp,
       withdraw,
       connectPaymentMethod,

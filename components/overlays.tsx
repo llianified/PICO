@@ -7,7 +7,15 @@ import { PixelSprite, type SpriteName } from '@/components/pixel-sprite'
 import { useStore } from '@/lib/store'
 
 export function GlobalOverlays() {
-  const { levelUp, clearLevelUp, rewardEvent, clearReward, level } = useStore()
+  const {
+    levelUp,
+    clearLevelUp,
+    rewardEvent,
+    clearReward,
+    level,
+    achievementEvent,
+    clearAchievement,
+  } = useStore()
 
   return (
     <>
@@ -81,6 +89,42 @@ export function GlobalOverlays() {
             className="flex w-full items-center justify-center rounded-lg bg-primary px-5 py-3.5 text-[15px] font-medium text-primary-foreground transition-transform duration-100 active:scale-[0.99]"
           >
             Collect
+          </button>
+        </div>
+      </Modal>
+
+      {/* Achievement unlocked */}
+      <Modal open={!!achievementEvent} onClose={clearAchievement}>
+        <div className="flex flex-col items-center gap-5 text-center">
+          <motion.div
+            initial={{ scale: 0.4, rotate: 10, opacity: 0 }}
+            animate={{ scale: 1, rotate: 0, opacity: 1 }}
+            transition={{ type: 'spring', stiffness: 340, damping: 16 }}
+            className="relative flex h-20 w-20 items-center justify-center rounded-xl border border-border bg-surface"
+          >
+            <PixelSprite name="shield" size={40} />
+            <motion.span
+              className="absolute -right-2 -top-2 text-foreground"
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.3, type: 'spring', stiffness: 400, damping: 14 }}
+            >
+              <Sparkles className="h-5 w-5" />
+            </motion.span>
+          </motion.div>
+          <div>
+            <p className="pixel-label text-[10px] text-muted-foreground">
+              {achievementEvent?.subtitle}
+            </p>
+            <p className="mt-2 text-xl font-medium tracking-tight text-balance">
+              {achievementEvent?.title}
+            </p>
+          </div>
+          <button
+            onClick={clearAchievement}
+            className="flex w-full items-center justify-center rounded-lg bg-primary px-5 py-3.5 text-[15px] font-medium text-primary-foreground transition-transform duration-100 active:scale-[0.99]"
+          >
+            Nice!
           </button>
         </div>
       </Modal>

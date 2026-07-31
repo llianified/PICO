@@ -51,6 +51,7 @@ export type Achievement = {
   current: number
   total: number
   unlocked: boolean
+  claimed?: boolean
 }
 
 export type Avatar = {
@@ -156,8 +157,8 @@ export const initialInventoryItems: InventoryItem[] = [
 ]
 
 export const initialAchievements: Achievement[] = [
-  { id: 'first', title: 'First Steps', subtitle: 'Complete your first quest', current: 1, total: 1, unlocked: true },
-  { id: 'dedicated', title: 'Dedicated', subtitle: 'Complete 10 daily quests', current: 10, total: 10, unlocked: true },
+  { id: 'first', title: 'First Steps', subtitle: 'Complete your first quest', current: 1, total: 1, unlocked: true, claimed: true },
+  { id: 'dedicated', title: 'Dedicated', subtitle: 'Complete 10 daily quests', current: 10, total: 10, unlocked: true, claimed: false },
   { id: 'adventurer', title: 'Adventurer', subtitle: 'Complete 50 quests', current: 28, total: 50, unlocked: false },
   { id: 'rich', title: 'Treasure Hunter', subtitle: 'Withdraw your first reward', current: 0, total: 1, unlocked: false },
 ]
