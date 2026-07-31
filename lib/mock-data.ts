@@ -66,7 +66,8 @@ export type InventoryItem = {
   rarity: 'Common' | 'Rare' | 'Epic' | 'Legendary'
   slot: string
   description: string
-  unlockedAt: string
+  /** Epoch ms of when the item was unlocked. Formatted only at render time. */
+  unlockedAt: number
 }
 
 export type Achievement = {
@@ -275,7 +276,7 @@ export function formatCompact(n: number): string {
   return n.toString()
 }
 
-/** Relative "time ago" label for reward-feed timestamps. */
+/** Relative "time ago" label for reward-feed and inventory timestamps. */
 export function formatRelativeTime(ts: number): string {
   const diff = Math.max(0, Date.now() - ts)
   const s = Math.floor(diff / 1000)

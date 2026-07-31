@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { Check, ChevronRight, Loader2, Package } from 'lucide-react'
 import { SegmentedProgress } from '@/components/primitives'
@@ -8,8 +8,30 @@ import { PixelSprite, type SpriteName } from '@/components/pixel-sprite'
 import { CountUp } from '@/components/ui/count-up'
 import { ActionButton } from '@/components/ui/action-button'
 import { BottomSheet } from '@/components/ui/sheet'
-import { formatCompact, type InventoryItem } from '@/lib/mock-data'
+import { formatCompact, formatRelativeTime, type InventoryItem } from '@/lib/mock-data'
 import { useStore, KEY_COST, CHEST_COST, INVENTORY_CAP } from '@/lib/store'
+
+/**
+ * Relative "unlocked" label for an inventory item.
+ *
+ * `Date.now()` must never be read while rendering on the server — the client
+ * re-reads it at hydration, the two strings disagree and React throws the whole
+ * server tree away. So the first render emits a stable placeholder on both sides
+ * and the real label is filled in after mount.
+ */
+function UnlockedAtLabel({ ts, className }: { ts: number; className?: string }) {
+  const [display, setDisplay] = useState<string | null>(null)
+
+  useEffect(() => {
+    const update = () => setDisplay(formatRelativeTime(ts))
+    update()
+    // Keep the label honest as time passes (also promotes "Just now" to "1m ago").
+    const interval = setInterval(update, 60000)
+    return () => clearInterval(interval)
+  }, [ts])
+
+  return <span className={className}>{display ?? '—'}</span>
+}
 
 export function InventoryScreen() {
   const {
@@ -250,7 +272,7 @@ export function InventoryScreen() {
               </div>
               <div className="flex items-center justify-between py-3 text-sm">
                 <span className="text-muted-foreground">Unlocked</span>
-                <span className="font-mono text-xs tnum">{activeItem.unlockedAt}</span>
+                <UnlockedAtLabel ts={activeItem.unlockedAt} className="font-mono text-xs tnum" />
               </div>
             </div>
             <button
@@ -346,7 +368,7 @@ function ItemRow({
           {item.rarity} · {item.slot}
         </p>
       </div>
-      <span className="shrink-0 font-mono text-[11px] text-muted-foreground">{item.unlockedAt}</span>
+      <UnlockedAtLabel ts={item.unlockedAt} className="shrink-0 font-mono text-[11px] text-muted-foreground" />
     </motion.button>
   )
 }
