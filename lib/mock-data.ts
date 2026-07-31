@@ -279,6 +279,15 @@ export function questCoinReward(xp: number): number {
   return Math.max(50, Math.round(xp * 0.6))
 }
 
+/**
+ * Rupiah paid into the wallet for completing a quest. Shared by the store (when
+ * granting) and the quest UI (when previewing) so the previewed reward always
+ * matches what actually lands in the wallet.
+ */
+export function questMoneyReward(xp: number): number {
+  return Math.round(xp * 4)
+}
+
 // ---------------------------------------------------------------------------
 // Leveling curve — the XP required grows 15% each level (unchanged curve), but
 // the base is tuned so leveling is actually achievable from quest rewards.

@@ -24,6 +24,7 @@ import {
   LEVEL_XP_BASE,
   questCoinReward,
   questKeyReward,
+  questMoneyReward,
   reconcileQuestAvailability,
   resetDailyQuests,
   toDayKey,
@@ -473,7 +474,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (r.keys) setKeys((k) => k + r.keys)
       if (r.coins) setCoins((c) => c + r.coins)
       if (r.chests) setChests((c) => c + r.chests)
-      const money = Math.round(r.xp * 4)
+      const money = questMoneyReward(r.xp)
       grantMoney(money, moneyLabel)
       unlockAchievementProgress('adventurer', 1)
       logReward({
