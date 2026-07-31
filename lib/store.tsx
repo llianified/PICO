@@ -4,6 +4,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -11,16 +12,24 @@ import {
 } from 'react'
 import {
   avatars,
+  computeStreak,
+  formatRp,
   initialAchievements,
   initialInventoryItems,
+  initialLoginDates,
   initialPaymentMethods,
   initialQuests,
+  initialRewardsFeed,
   initialTransactions,
+  questCoinReward,
+  questKeyReward,
+  toDayKey,
   type Achievement,
   type Avatar,
   type InventoryItem,
   type PaymentMethod,
   type Quest,
+  type RewardFeedItem,
   type Transaction,
 } from '@/lib/mock-data'
 
@@ -40,11 +49,19 @@ export type RewardEvent = {
   items: { label: string; sprite: string }[]
 } | null
 export type AchievementEvent = { title: string; subtitle: string } | null
-export type QuestReward = { xp: number; keys: number; chests: number }
+export type QuestReward = { xp: number; keys: number; chests: number; coins: number }
 
 /** Coins can be spent in the inventory shop to restock keys and chests. */
 export const KEY_COST = 800
 export const CHEST_COST = 2000
+
+/** Energy economy — completing a quest costs energy, which regenerates over time. */
+export const ENERGY_MAX = 30
+export const ENERGY_COST = 6
+export const ENERGY_REGEN_MS = 90_000
+
+/** How many items the inventory can hold. Collection progress is separate. */
+export const INVENTORY_CAP = 12
 
 export type TabId = 'home' | 'adventure' | 'inventory' | 'wallet' | 'profile'
 
@@ -63,6 +80,11 @@ type StoreValue = {
   streak: number
   energy: number
   energyMax: number
+  energyCost: number
+  /** timestamp (ms) when the next energy point regenerates, or null when full */
+  nextEnergyAt: number | null
+  questsCompletedTotal: number
+  daysActive: number
 
   // wallet
   balance: number
@@ -82,6 +104,8 @@ type StoreValue = {
   collectionOwned: number
   collectionTotal: number
   inventoryItems: InventoryItem[]
+  inventoryCount: number
+  inventoryCap: number
   /** maps an equipment slot (e.g. "Head") to the equipped item id */
   equipped: Record<string, string>
   /** the resolved inventory items that are currently equipped on the avatar */
@@ -89,6 +113,9 @@ type StoreValue = {
 
   // achievements
   achievements: Achievement[]
+
+  // activity feed (Recent Rewards)
+  rewardsFeed: RewardFeedItem[]
 
   // settings
   language: string
@@ -138,9 +165,25 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [totalXp, setTotalXp] = useState(142550)
   const [levelXp, setLevelXp] = useState(70000)
   const [levelXpNeeded, setLevelXpNeeded] = useState(200000)
-  const [streak] = useState(12)
-  const [energy] = useState(24)
-  const energyMax = 30
+
+  // Streak is derived from a mocked login history, never hardcoded.
+  const [loginDates, setLoginDates] = useState<string[]>(initialLoginDates)
+  const streak = useMemo(() => computeStreak(loginDates), [loginDates])
+
+  // Lifetime stats that back the profile screen.
+  const [questsCompletedTotal, setQuestsCompletedTotal] = useState(128)
+  const [daysActive, setDaysActive] = useState(18)
+
+  // Energy regenerates one point every ENERGY_REGEN_MS while below the cap.
+  const energyMax = ENERGY_MAX
+  const [energy, setEnergy] = useState(24)
+  const [nextEnergyAt, setNextEnergyAt] = useState<number | null>(
+    () => Date.now() + ENERGY_REGEN_MS,
+  )
+  const energyRef = useRef(energy)
+  energyRef.current = energy
+  const nextEnergyAtRef = useRef(nextEnergyAt)
+  nextEnergyAtRef.current = nextEnergyAt
 
   const [balance, setBalance] = useState(84500)
   const [totalEarned, setTotalEarned] = useState(1245000)
@@ -166,6 +209,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const [achievements, setAchievements] = useState<Achievement[]>(initialAchievements)
 
+  const [rewardsFeed, setRewardsFeed] = useState<RewardFeedItem[]>(initialRewardsFeed)
+
   const [language, setLanguage] = useState('English')
   const [theme, setTheme] = useState('Dark')
   const [notificationsEnabled, setNotificationsEnabled] = useState(true)
@@ -188,6 +233,69 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const dismissToast = useCallback((id: number) => {
     setToasts((prev) => prev.filter((x) => x.id !== id))
+  }, [])
+
+  // Append a gameplay event to the Recent Rewards feed (newest first).
+  const logReward = useCallback((entry: Omit<RewardFeedItem, 'id' | 'createdAt'>) => {
+    setRewardsFeed((prev) =>
+      [
+        {
+          ...entry,
+          id: 'rw' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+          createdAt: Date.now(),
+        },
+        ...prev,
+      ].slice(0, 40),
+    )
+  }, [])
+
+  // Record today's login exactly once. Adding a new day grows "days active";
+  // the streak recomputes automatically from the login history.
+  const recordDailyLogin = useCallback(() => {
+    const today = toDayKey(new Date())
+    setLoginDates((prev) => {
+      if (prev.includes(today)) return prev
+      setDaysActive((d) => d + 1)
+      return [today, ...prev]
+    })
+  }, [])
+
+  useEffect(() => {
+    recordDailyLogin()
+  }, [recordDailyLogin])
+
+  // Spend energy and (re)start the regen timer if we dropped below the cap.
+  const consumeEnergy = useCallback((amount: number) => {
+    setEnergy((prev) => {
+      const next = Math.max(0, prev - amount)
+      if (next < ENERGY_MAX && nextEnergyAtRef.current === null) {
+        setNextEnergyAt(Date.now() + ENERGY_REGEN_MS)
+      }
+      return next
+    })
+  }, [])
+
+  // Live energy regeneration. Only writes state when a point is actually gained
+  // (or the timer needs normalizing), so it won't re-render the tree each tick.
+  useEffect(() => {
+    const id = setInterval(() => {
+      const e = energyRef.current
+      const at = nextEnergyAtRef.current
+      if (e >= ENERGY_MAX) {
+        if (at !== null) setNextEnergyAt(null)
+        return
+      }
+      if (at === null) {
+        setNextEnergyAt(Date.now() + ENERGY_REGEN_MS)
+        return
+      }
+      if (Date.now() >= at) {
+        const next = Math.min(ENERGY_MAX, e + 1)
+        setEnergy(next)
+        setNextEnergyAt(next >= ENERGY_MAX ? null : Date.now() + ENERGY_REGEN_MS)
+      }
+    }, 1000)
+    return () => clearInterval(id)
   }, [])
 
   const clearLevelUp = useCallback(() => setLevelUp(null), [])
@@ -303,10 +411,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [])
 
   // Rewards scale with a quest's XP value: bigger quests hand out more keys,
-  // and every quest has a chance to drop a treasure chest.
+  // coins, and every quest has a chance to drop a treasure chest.
   const rollQuestReward = (xpValue: number): QuestReward => ({
     xp: xpValue,
-    keys: xpValue >= 500 ? 2 : 1,
+    keys: questKeyReward(xpValue),
+    coins: questCoinReward(xpValue),
     chests: Math.random() < (xpValue >= 300 ? 0.5 : 0.25) ? 1 : 0,
   })
 
@@ -314,21 +423,37 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     (r: QuestReward, moneyLabel: string) => {
       if (r.xp) addXp(r.xp)
       if (r.keys) setKeys((k) => k + r.keys)
+      if (r.coins) setCoins((c) => c + r.coins)
       if (r.chests) setChests((c) => c + r.chests)
-      grantMoney(Math.round(r.xp * 4), moneyLabel)
+      const money = Math.round(r.xp * 4)
+      grantMoney(money, moneyLabel)
       unlockAchievementProgress('adventurer', 1)
+      logReward({
+        sprite: 'trophy',
+        title: 'Quest Completed',
+        subtitle: moneyLabel,
+        value: `+${r.xp} XP`,
+      })
     },
-    [addXp, grantMoney, unlockAchievementProgress],
+    [addXp, grantMoney, unlockAchievementProgress, logReward],
   )
 
   const completeQuest = useCallback(
     async (id: string): Promise<QuestReward> => {
+      // Energy gates gameplay: block completion up front if the player is short.
+      if (energyRef.current < ENERGY_COST) {
+        throw new Error('NO_ENERGY')
+      }
       await delay(1400)
       const snapshot = questsRef.current
       const target = snapshot.find((q) => q.id === id)
       if (!target || target.state === 'done') {
-        return { xp: 0, keys: 0, chests: 0 }
+        return { xp: 0, keys: 0, chests: 0, coins: 0 }
       }
+
+      // Spend energy for the completed objective.
+      consumeEnergy(ENERGY_COST)
+      setQuestsCompletedTotal((n) => n + 1)
 
       const primary = rollQuestReward(target.xpValue)
 
