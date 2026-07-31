@@ -21,7 +21,7 @@ import {
   initialQuests,
   initialRewardsFeed,
   initialTransactions,
-  LEVEL_XP_BASE,
+  levelProgressFromTotalXp,
   questCoinReward,
   questKeyReward,
   questMoneyReward,
@@ -165,10 +165,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const [name, setName] = useState('Explorer')
   const [avatarId, setAvatarId] = useState<string>('explorer')
-  const [level, setLevel] = useState(1)
+  // Lifetime XP is the single source of truth; level and in-level progress are
+  // always derived from it so the progress bar can never overflow or drift.
   const [totalXp, setTotalXp] = useState(0)
-  const [levelXp, setLevelXp] = useState(0)
-  const [levelXpNeeded, setLevelXpNeeded] = useState(LEVEL_XP_BASE)
+  const { level, levelXp, levelXpNeeded } = levelProgressFromTotalXp(totalXp)
 
   // Streak is derived from a mocked login history, never hardcoded.
   const [loginDates, setLoginDates] = useState<string[]>(initialLoginDates)
@@ -371,30 +371,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const addXp = useCallback((amount: number) => {
-    setTotalXp((prev) => prev + amount)
-    setLevelXp((prevXp) => {
-      let xp = prevXp + amount
-      let leveledUp = false
-      let newLevel = 0
-      setLevelXpNeeded((prevNeeded) => {
-        let needed = prevNeeded
-        setLevel((prevLevel) => {
-          let lvl = prevLevel
-          while (xp >= needed) {
-            xp -= needed
-            lvl += 1
-            needed = Math.round(needed * 1.15)
-            leveledUp = true
-            newLevel = lvl
-          }
-          if (leveledUp) {
-            setTimeout(() => setLevelUp({ level: newLevel }), 400)
-          }
-          return lvl
-        })
-        return needed
-      })
-      return xp
+    if (amount <= 0) return
+    setTotalXp((prev) => {
+      const next = prev + amount
+      const prevLevel = levelProgressFromTotalXp(prev).level
+      const newLevel = levelProgressFromTotalXp(next).level
+      if (newLevel > prevLevel) {
+        setTimeout(() => setLevelUp({ level: newLevel }), 400)
+      }
+      return next
     })
   }, [])
 
