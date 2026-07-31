@@ -3,21 +3,20 @@
 import Image from 'next/image'
 import { ChevronRight, Flame, Zap } from 'lucide-react'
 import { SegmentedProgress } from '@/components/primitives'
-import { PixelSprite, type SpriteName } from '@/components/pixel-sprite'
+import { PixelSprite } from '@/components/pixel-sprite'
 import { CountUp } from '@/components/ui/count-up'
 import { useStore, avatarSprite } from '@/lib/store'
 
-const rewards: {
-  sprite: SpriteName
-  title: string
-  subtitle: string
-  xp: string
-  time: string
-}[] = [
-  { sprite: 'trophy', title: 'Quest Completed', subtitle: 'Daily Check-in', xp: '+100 XP', time: '2m ago' },
-  { sprite: 'shield', title: 'New Badge', subtitle: 'First Steps', xp: '+100 XP', time: '2m ago' },
-  { sprite: 'star', title: 'XP Earned', subtitle: 'Daily Quest', xp: '+250 XP', time: '10m ago' },
-]
+/** Compact "time ago" label for the Recent Rewards feed. */
+function timeAgo(ts: number): string {
+  const diff = Math.max(0, Date.now() - ts)
+  const mins = Math.floor(diff / 60000)
+  if (mins < 1) return 'just now'
+  if (mins < 60) return `${mins}m ago`
+  const hrs = Math.floor(mins / 60)
+  if (hrs < 24) return `${hrs}h ago`
+  return `${Math.floor(hrs / 24)}d ago`
+}
 
 export function HomeScreen() {
   const {
@@ -31,6 +30,7 @@ export function HomeScreen() {
     energy,
     energyMax,
     equippedItems,
+    rewardsFeed,
     navigate,
   } = useStore()
 
