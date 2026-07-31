@@ -40,14 +40,14 @@ export function HomeScreen() {
   return (
     <div className="flex flex-col gap-8 px-6 pb-6 pt-2">
       {/* Greeting */}
-      <header className="flex items-start justify-between">
-        <div>
+      <header className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
           <p className="text-[13px] text-muted-foreground">Good Evening,</p>
-          <h1 className="mt-0.5 text-3xl font-medium tracking-tight text-balance">{name}</h1>
+          <h1 className="mt-0.5 break-words text-3xl font-medium tracking-tight text-balance">{name}</h1>
         </div>
         <button
           onClick={() => navigate('profile')}
-          className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-lg border border-border bg-card transition-colors duration-150 hover:border-ring active:scale-95"
+          className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-card transition-colors duration-150 hover:border-ring active:scale-95"
           aria-label="Open profile"
         >
           {isDefaultAvatar ? (
@@ -136,14 +136,14 @@ export function HomeScreen() {
               onClick={() => navigate('wallet')}
               className="-mx-2 flex items-center gap-3 rounded-md px-2 py-3 text-left transition-colors duration-150 hover:bg-surface active:scale-[0.99]"
             >
-              <div className="flex h-9 w-9 items-center justify-center rounded-md border border-border bg-surface text-muted-foreground">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-border bg-surface text-muted-foreground">
                 <PixelSprite name={r.sprite} size={18} />
               </div>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm">{r.title}</p>
                 <p className="truncate text-xs text-muted-foreground">{r.subtitle}</p>
               </div>
-              <div className="text-right">
+              <div className="shrink-0 text-right">
                 <p className="font-mono text-xs font-medium tnum">{r.xp}</p>
                 <p className="font-mono text-[10px] text-muted-foreground">{r.time}</p>
               </div>

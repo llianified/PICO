@@ -180,12 +180,12 @@ export function WithdrawSheet({ open, onClose }: { open: boolean; onClose: () =>
                           selected ? 'border-foreground' : 'border-border hover:border-ring'
                         }`}
                       >
-                        <div className="flex h-8 w-8 items-center justify-center rounded-md border border-border bg-surface text-muted-foreground">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-border bg-surface text-muted-foreground">
                           <PixelSprite name="coin" size={16} />
                         </div>
-                        <span className="flex-1 text-sm">{m.name}</span>
+                        <span className="min-w-0 flex-1 truncate text-sm">{m.name}</span>
                         <span
-                          className={`flex h-5 w-5 items-center justify-center rounded-full border ${
+                          className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${
                             selected ? 'border-foreground bg-foreground text-background' : 'border-border'
                           }`}
                         >

@@ -221,16 +221,16 @@ function ItemRow({ item, onClick }: { item: InventoryItem; onClick: () => void }
       onClick={onClick}
       className="flex w-full items-center gap-3 rounded-lg border border-border bg-card p-4 text-left transition-colors hover:border-ring"
     >
-      <div className="flex h-11 w-11 items-center justify-center rounded-md border border-border bg-surface">
+      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md border border-border bg-surface">
         <PixelSprite name={item.sprite} size={22} />
       </div>
-      <div className="flex-1">
-        <p className="text-sm font-medium">{item.name}</p>
-        <p className="pixel-label mt-1.5 text-[9px] text-muted-foreground">
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-medium">{item.name}</p>
+        <p className="pixel-label mt-1.5 truncate text-[9px] text-muted-foreground">
           {item.rarity} · {item.slot}
         </p>
       </div>
-      <span className="font-mono text-[11px] text-muted-foreground">{item.unlockedAt}</span>
+      <span className="shrink-0 font-mono text-[11px] text-muted-foreground">{item.unlockedAt}</span>
     </motion.button>
   )
 }

@@ -64,12 +64,12 @@ export function SettingsSheet({ open, onClose }: { open: boolean; onClose: () =>
               onClick={r.onClick}
               className="flex items-center gap-3 rounded-lg border border-border bg-card p-4 transition-colors hover:border-muted-foreground/40 active:scale-[0.99]"
             >
-              <div className="flex h-9 w-9 items-center justify-center rounded-md border border-border bg-surface">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-border bg-surface">
                 <r.icon className="h-4 w-4 text-muted-foreground" />
               </div>
-              <span className="flex-1 text-left text-sm font-medium">{r.label}</span>
-              {r.value && <span className="text-xs text-muted-foreground">{r.value}</span>}
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              <span className="min-w-0 flex-1 truncate text-left text-sm font-medium">{r.label}</span>
+              {r.value && <span className="shrink-0 text-xs text-muted-foreground">{r.value}</span>}
+              <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
             </button>
           ))}
 
@@ -77,10 +77,10 @@ export function SettingsSheet({ open, onClose }: { open: boolean; onClose: () =>
             onClick={() => setConfirmDelete(true)}
             className="mt-2 flex items-center gap-3 rounded-lg border border-destructive/40 bg-card p-4 transition-colors hover:border-destructive active:scale-[0.99]"
           >
-            <div className="flex h-9 w-9 items-center justify-center rounded-md border border-destructive/40 bg-surface">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-destructive/40 bg-surface">
               <Trash2 className="h-4 w-4 text-destructive" />
             </div>
-            <span className="flex-1 text-left text-sm font-medium text-destructive">
+            <span className="min-w-0 flex-1 truncate text-left text-sm font-medium text-destructive">
               Delete Account
             </span>
           </button>
@@ -95,16 +95,16 @@ export function SettingsSheet({ open, onClose }: { open: boolean; onClose: () =>
       >
         <div className="flex flex-col gap-3">
           <div className="flex items-center gap-3 rounded-lg border border-border bg-card p-4">
-            <Bell className="h-4 w-4 text-muted-foreground" />
-            <div className="flex-1">
+            <Bell className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <div className="min-w-0 flex-1">
               <p className="text-sm font-medium">Push Notifications</p>
               <p className="text-xs text-muted-foreground">Quest reminders and rewards</p>
             </div>
             <Toggle checked={notificationsEnabled} onChange={toggleNotifications} />
           </div>
           <div className="flex items-center gap-3 rounded-lg border border-border bg-card p-4">
-            <Volume2 className="h-4 w-4 text-muted-foreground" />
-            <div className="flex-1">
+            <Volume2 className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <div className="min-w-0 flex-1">
               <p className="text-sm font-medium">Sound Effects</p>
               <p className="text-xs text-muted-foreground">Play sounds on actions</p>
             </div>

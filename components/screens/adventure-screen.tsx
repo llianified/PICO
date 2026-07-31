@@ -32,7 +32,7 @@ function QuestRow({ quest, onOpen }: { quest: Quest; onOpen: () => void }) {
         <div className="flex items-center justify-between gap-2">
           <p className="truncate text-[15px] font-medium">{quest.title}</p>
           {quest.progress ? (
-            <span className="font-mono text-xs text-muted-foreground tnum">
+            <span className="shrink-0 font-mono text-xs text-muted-foreground tnum">
               {quest.progress.current}/{quest.progress.total}
             </span>
           ) : (

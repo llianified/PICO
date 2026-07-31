@@ -23,13 +23,13 @@ function Shell() {
   const ActiveScreen = nav.find((n) => n.id === tab)!.Screen
 
   return (
-    <div className="relative mx-auto flex min-h-dvh w-full max-w-[420px] flex-col bg-background md:my-6 md:min-h-0 md:h-[860px] md:rounded-3xl md:border md:border-border md:shadow-2xl md:overflow-hidden">
-      <main className="no-scrollbar flex-1 overflow-y-auto pt-[env(safe-area-inset-top)]">
+    <div className="relative mx-auto flex h-dvh w-full max-w-[420px] flex-col overflow-hidden bg-background md:my-6 md:h-[860px] md:rounded-3xl md:border md:border-border md:shadow-2xl">
+      <main className="no-scrollbar min-h-0 flex-1 overflow-y-auto overflow-x-hidden pt-[env(safe-area-inset-top)]">
         <ActiveScreen />
       </main>
 
       {/* Bottom navigation */}
-      <nav className="sticky bottom-0 flex items-center justify-around border-t border-border bg-background/90 px-2 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur-md">
+      <nav className="flex shrink-0 items-center justify-around border-t border-border bg-background/90 px-2 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur-md">
         {nav.map((item) => {
           const Icon = item.icon
           const isActive = item.id === tab

@@ -50,18 +50,18 @@ function AchievementRow({ achievement: a }: { achievement: Achievement }) {
     >
       <div className="flex items-center gap-3">
         <div
-          className={`flex h-10 w-10 items-center justify-center rounded-md border border-border bg-surface transition-opacity ${
+          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-border bg-surface transition-opacity ${
             a.unlocked ? 'opacity-100' : 'opacity-40'
           }`}
         >
           <PixelSprite name="trophy" size={20} />
         </div>
-        <div className="flex-1">
-          <p className="text-sm font-medium">{a.title}</p>
-          <p className="text-xs text-muted-foreground">{a.subtitle}</p>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-medium">{a.title}</p>
+          <p className="truncate text-xs text-muted-foreground">{a.subtitle}</p>
         </div>
         {a.claimed ? (
-          <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
+          <span className="flex shrink-0 items-center gap-1 text-[11px] text-muted-foreground">
             <Check className="h-3.5 w-3.5" />
             Claimed
           </span>
@@ -74,12 +74,12 @@ function AchievementRow({ achievement: a }: { achievement: Achievement }) {
             variant="primary"
             loadingText="Claiming"
             successText="Claimed"
-            className="h-8 px-3 py-0 text-xs"
+            className="h-8 shrink-0 px-3 py-0 text-xs"
           >
             Claim
           </ActionButton>
         ) : (
-          <span className="pixel-label text-[9px] text-muted-foreground tnum">
+          <span className="pixel-label shrink-0 text-[9px] text-muted-foreground tnum">
             {formatCompact(a.current)} / {formatCompact(a.total)}
           </span>
         )}
