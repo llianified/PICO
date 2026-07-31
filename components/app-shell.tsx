@@ -22,12 +22,12 @@ export function AppShell() {
 
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-[420px] flex-col bg-background md:my-6 md:min-h-0 md:h-[860px] md:rounded-3xl md:border md:border-border md:shadow-2xl md:overflow-hidden">
-      <main className="no-scrollbar flex-1 overflow-y-auto">
+      <main className="no-scrollbar flex-1 overflow-y-auto pt-[env(safe-area-inset-top)]">
         <ActiveScreen />
       </main>
 
       {/* Bottom navigation */}
-      <nav className="sticky bottom-0 flex items-center justify-around border-t border-border bg-background/95 px-2 pb-5 pt-2 backdrop-blur">
+      <nav className="sticky bottom-0 flex items-center justify-around border-t border-border bg-background/90 px-2 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur-md">
         {nav.map((item) => {
           const Icon = item.icon
           const isActive = item.id === active
@@ -35,13 +35,22 @@ export function AppShell() {
             <button
               key={item.id}
               onClick={() => setActive(item.id)}
-              className={`flex flex-1 flex-col items-center gap-1 py-1 transition-colors duration-100 ${
-                isActive ? 'text-foreground' : 'text-muted-foreground'
+              className={`group relative flex flex-1 flex-col items-center gap-1 py-1 transition-colors duration-150 ${
+                isActive ? 'text-foreground' : 'text-muted-foreground hover:text-foreground/70'
               }`}
               aria-current={isActive ? 'page' : undefined}
             >
-              <Icon className="h-5 w-5" strokeWidth={isActive ? 2.25 : 1.75} />
+              <Icon
+                className="h-5 w-5 transition-transform duration-150 group-active:scale-90"
+                strokeWidth={isActive ? 2.25 : 1.75}
+              />
               <span className="text-[10px] font-medium">{item.label}</span>
+              <span
+                className={`absolute -top-2 h-1 w-1 rounded-full bg-foreground transition-opacity duration-150 ${
+                  isActive ? 'opacity-100' : 'opacity-0'
+                }`}
+                aria-hidden="true"
+              />
             </button>
           )
         })}

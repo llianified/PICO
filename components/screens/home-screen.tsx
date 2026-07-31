@@ -17,14 +17,17 @@ const rewards: {
 
 export function HomeScreen() {
   return (
-    <div className="flex flex-col gap-8 px-6 pb-6 pt-2">
+    <div className="flex flex-col gap-8 px-6 pb-6 pt-6">
       {/* Greeting */}
       <header className="flex items-start justify-between">
         <div>
           <p className="text-sm text-muted-foreground">Good Evening,</p>
           <h1 className="text-2xl font-semibold tracking-tight text-balance">Explorer</h1>
         </div>
-        <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-lg border border-border bg-card">
+        <button
+          className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-lg border border-border bg-card transition-colors duration-150 hover:border-ring active:scale-95"
+          aria-label="Open profile"
+        >
           <Image
             src="/pixel/avatar.png"
             alt="Your avatar"
@@ -32,7 +35,7 @@ export function HomeScreen() {
             height={40}
             className="pixelated h-9 w-9 object-contain"
           />
-        </div>
+        </button>
       </header>
 
       {/* Level / XP */}
@@ -59,7 +62,7 @@ export function HomeScreen() {
 
       {/* Streak + Energy */}
       <section className="grid grid-cols-2 gap-3">
-        <div className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4">
+        <div className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4 transition-colors duration-150 hover:border-ring">
           <div className="flex items-center gap-2 text-muted-foreground">
             <Flame className="h-4 w-4" />
             <span className="text-xs">Daily Streak</span>
@@ -69,7 +72,7 @@ export function HomeScreen() {
             <span className="text-xs text-muted-foreground">days</span>
           </div>
         </div>
-        <div className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4">
+        <div className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4 transition-colors duration-150 hover:border-ring">
           <div className="flex items-center gap-2 text-muted-foreground">
             <Zap className="h-4 w-4" />
             <span className="text-xs">Energy</span>
@@ -94,7 +97,10 @@ export function HomeScreen() {
         </div>
         <div className="flex flex-col divide-y divide-border">
           {rewards.map((r) => (
-            <div key={r.title} className="flex items-center gap-3 py-3">
+            <button
+              key={r.title}
+              className="-mx-2 flex items-center gap-3 rounded-md px-2 py-3 text-left transition-colors duration-150 hover:bg-surface"
+            >
               <div className="flex h-9 w-9 items-center justify-center rounded-md border border-border bg-surface text-muted-foreground">
                 <PixelSprite name={r.sprite} size={18} />
               </div>
@@ -106,7 +112,7 @@ export function HomeScreen() {
                 <p className="font-mono text-xs font-medium tnum">{r.xp}</p>
                 <p className="font-mono text-[10px] text-muted-foreground">{r.time}</p>
               </div>
-            </div>
+            </button>
           ))}
         </div>
       </section>

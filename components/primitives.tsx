@@ -1,4 +1,3 @@
-import { Signal, Wifi, BatteryFull } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 /**
@@ -44,20 +43,6 @@ export function Progress({
         className="h-full rounded-full bg-foreground transition-all duration-300"
         style={{ width: `${Math.min(100, Math.max(0, value))}%` }}
       />
-    </div>
-  )
-}
-
-/** iOS-style status bar. */
-export function StatusBar() {
-  return (
-    <div className="flex h-11 items-center justify-between px-6 text-foreground">
-      <span className="font-mono text-sm font-medium tracking-tight tnum">9:41</span>
-      <div className="flex items-center gap-1.5">
-        <Signal className="h-4 w-4" />
-        <Wifi className="h-4 w-4" />
-        <BatteryFull className="h-5 w-5" />
-      </div>
     </div>
   )
 }
