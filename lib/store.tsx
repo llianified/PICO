@@ -151,6 +151,8 @@ type StoreValue = {
   setTheme: (t: string) => void
   toggleNotifications: () => void
   toggleSound: () => void
+  /** Wipes all gameplay progress back to a clean, first-launch state. */
+  resetProgress: () => void
 }
 
 const StoreContext = createContext<StoreValue | null>(null)
@@ -572,6 +574,57 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const toggleNotifications = useCallback(() => setNotificationsEnabled((v) => !v), [])
   const toggleSound = useCallback(() => setSoundEnabled((v) => !v), [])
 
+  // Full progress wipe: every piece of gameplay state returns to a clean,
+  // first-launch slate. Fresh copies of the seed arrays/objects are used so we
+  // never mutate the shared module-level defaults.
+  const resetProgress = useCallback(() => {
+    // profile / progression
+    setName('Explorer')
+    setAvatarId('explorer')
+    setLevel(1)
+    setTotalXp(0)
+    setLevelXp(0)
+    setLevelXpNeeded(200000)
+    setLoginDates(initialLoginDates)
+    setQuestsCompletedTotal(0)
+    setDaysActive(0)
+
+    // energy
+    setEnergy(ENERGY_MAX)
+    setNextEnergyAt(null)
+
+    // wallet — clear balances, history, and any connected payment methods
+    setBalance(0)
+    setTotalEarned(0)
+    setTransactions([])
+    setPaymentMethods(initialPaymentMethods.map((m) => ({ ...m, connected: false })))
+
+    // quests
+    setQuests(initialQuests.map((q) => ({ ...q, progress: q.progress ? { ...q.progress } : undefined })))
+
+    // inventory / currencies
+    setChests(0)
+    setKeys(0)
+    setCoins(0)
+    setArtifacts(0)
+    setBadges(0)
+    setCollectionOwned(0)
+    setInventoryItems([])
+    setEquipped({})
+
+    // achievements + activity feed
+    setAchievements(initialAchievements.map((a) => ({ ...a })))
+    setRewardsFeed([])
+
+    // transient UI events
+    setLevelUp(null)
+    setRewardEvent(null)
+    setAchievementEvent(null)
+
+    // re-record today's login so streak/days-active start consistently
+    recordDailyLogin()
+  }, [recordDailyLogin])
+
   // Resolve the equipped slot map into the actual inventory items so screens can
   // reflect equipped gear on the avatar.
   const equippedItems = useMemo<InventoryItem[]>(
@@ -642,6 +695,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setTheme,
       toggleNotifications,
       toggleSound,
+      resetProgress,
     }),
     [
       tab,
@@ -698,6 +752,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       updateProfile,
       toggleNotifications,
       toggleSound,
+      resetProgress,
     ],
   )
 
