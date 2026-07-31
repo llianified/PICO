@@ -1,14 +1,13 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { AlertCircle, Check, ChevronRight, Loader2, Plus } from 'lucide-react'
 import { BottomSheet } from '@/components/ui/sheet'
 import { PixelSprite } from '@/components/pixel-sprite'
 import { formatRp } from '@/lib/mock-data'
-import { useStore } from '@/lib/store'
+import { useStore, MIN_WITHDRAW, WithdrawError } from '@/lib/store'
 
-const MIN_WITHDRAW = 10000
 const QUICK = [10000, 25000, 50000]
 
 type Step = 'form' | 'confirm' | 'success'
@@ -23,6 +22,12 @@ export function WithdrawSheet({ open, onClose }: { open: boolean; onClose: () =>
   const [touched, setTouched] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
+  /**
+   * Identifies this withdrawal attempt. Minted once when the user reaches the
+   * confirm step, so retrying after a failure is recognised as the *same*
+   * attempt and cannot debit the balance twice.
+   */
+  const attemptKeyRef = useRef<string | null>(null)
 
   const numeric = Number(amount.replace(/\D/g, ''))
   const method = paymentMethods.find((m) => m.id === methodId)
@@ -43,6 +48,7 @@ export function WithdrawSheet({ open, onClose }: { open: boolean; onClose: () =>
     setSubmitting(false)
     setServerError(null)
     setMethodId(connected[0]?.id ?? '')
+    attemptKeyRef.current = null
   }
 
   function handleClose() {
@@ -58,19 +64,26 @@ export function WithdrawSheet({ open, onClose }: { open: boolean; onClose: () =>
       return
     }
 
+    if (submitting) return // never let a double-tap submit twice
+
     setSubmitting(true)
     setServerError(null)
     try {
-      await withdraw(numeric, methodId)
+      // The store re-validates everything below against its own state; this
+      // component's checks are only for fast feedback.
+      await withdraw(numeric, methodId, attemptKeyRef.current ?? undefined)
       setStep('success')
       toast({
         title: 'Withdrawal successful',
         description: `${formatRp(numeric)} sent to ${method?.name}.`,
         variant: 'success',
       })
-    } catch {
-      setServerError('Network error. Please try again.')
-      toast({ title: 'Withdrawal failed', description: 'Please try again.', variant: 'error' })
+    } catch (err) {
+      // Surface the store's reason when it rejected on rules rather than network.
+      const message =
+        err instanceof WithdrawError ? err.message : 'Network error. Please try again.'
+      setServerError(message)
+      toast({ title: 'Withdrawal failed', description: message, variant: 'error' })
     } finally {
       setSubmitting(false)
     }
@@ -207,7 +220,11 @@ export function WithdrawSheet({ open, onClose }: { open: boolean; onClose: () =>
             <button
               onClick={() => {
                 setTouched(true)
-                if (!error) setStep('confirm')
+                if (error) return
+                // One key per attempt — regenerated whenever the user comes back
+                // to edit, so a changed amount is treated as a new withdrawal.
+                attemptKeyRef.current = `wd-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+                setStep('confirm')
               }}
               disabled={!!error}
               className="group mt-2 flex items-center justify-center gap-1 rounded-lg bg-primary px-5 py-4 text-[15px] font-medium text-primary-foreground transition-all duration-100 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"

@@ -99,7 +99,19 @@ export type RewardFeedItem = {
   createdAt: number
 }
 
-export const initialQuests: Quest[] = [
+/**
+ * Rewarded-video quests pay out real money, so they may only ship once a real
+ * ad provider is wired up and completion is confirmed by that provider's
+ * server-side callback. Until then any quest with `state: 'video'` is withheld
+ * from the catalogue: a "Watch Video" button that grants a reward without ever
+ * playing a video is advertising fraud, not a placeholder.
+ *
+ * Flip this to `true` only together with a real player + verified completion
+ * signal, and add the corresponding guard in `startQuest`.
+ */
+export const REWARDED_VIDEO_ENABLED = false
+
+const questCatalogue: Quest[] = [
   {
     id: 'survey',
     title: 'Complete Daily Survey',
@@ -212,6 +224,14 @@ export const initialQuests: Quest[] = [
     levelRequired: 5,
   },
 ]
+
+/**
+ * The quests the player can actually see. Rewarded-video quests are excluded
+ * until a verified ad provider exists (see `REWARDED_VIDEO_ENABLED`).
+ */
+export const initialQuests: Quest[] = questCatalogue.filter(
+  (q) => REWARDED_VIDEO_ENABLED || q.state !== 'video',
+)
 
 export const initialTransactions: Transaction[] = []
 
@@ -384,33 +404,15 @@ export function computeStreak(loginDates: string[]): number {
 export const initialLoginDates = makeConsecutiveDays(0)
 
 /**
- * Seed activity feed. These mirror the initial state (login quest done, First
- * Steps badge claimed, survey reward matching the first transactions) so the
- * feed is internally consistent from the very first render.
+ * The activity feed is derived purely from real gameplay events via
+ * `logReward`, so a fresh account starts empty.
+ *
+ * Do NOT seed entries here. Two reasons:
+ *  1. Showing rewards and money the player never earned contradicts the wallet
+ *     and the XP counter, which is deceptive in a real-money app.
+ *  2. Any `Date.now()` at module scope is evaluated once on the server and
+ *     again on the client, so the rendered "time ago" labels disagree and
+ *     hydration fails, throwing away the server tree on every page load.
+ *     Timestamps must only ever be created client-side, after mount.
  */
-export const initialRewardsFeed: RewardFeedItem[] = [
-  {
-    id: 'rw1',
-    sprite: 'trophy',
-    title: 'Quest Completed',
-    subtitle: 'Gather 100 Gold · +50 Coins',
-    value: '+150 XP',
-    createdAt: Date.now() - 5 * 60000, // 5 mins ago
-  },
-  {
-    id: 'rw2',
-    sprite: 'chest',
-    title: 'Chest Opened',
-    subtitle: 'Found a Rare Item',
-    value: 'Legendary Sword',
-    createdAt: Date.now() - 15 * 60000, // 15 mins ago
-  },
-  {
-    id: 'rw3',
-    sprite: 'coin',
-    title: 'Money Earned',
-    subtitle: 'Daily bonus',
-    value: '+5,000 Rp',
-    createdAt: Date.now() - 1 * 3600000, // 1 hour ago
-  },
-]
+export const initialRewardsFeed: RewardFeedItem[] = []

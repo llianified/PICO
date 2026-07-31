@@ -2,48 +2,33 @@
 
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
-import { ChevronRight, Flame, Zap } from 'lucide-react'
+import { ChevronRight, Flame, Sparkles, Zap } from 'lucide-react'
 import { SegmentedProgress } from '@/components/primitives'
 import { PixelSprite } from '@/components/pixel-sprite'
 import { CountUp } from '@/components/ui/count-up'
+import { formatRelativeTime } from '@/lib/mock-data'
 import { useStore, avatarSprite, ENERGY_MAX } from '@/lib/store'
 
-/** Compact "time ago" label for the Recent Rewards feed. */
+/**
+ * Compact "time ago" label for the Recent Rewards feed.
+ *
+ * `Date.now()` must never be read while rendering on the server — the client
+ * re-reads it at hydration, the two strings disagree and React throws the whole
+ * server tree away. So the first render emits a stable placeholder on both
+ * sides and the real label is filled in after mount.
+ */
 function TimeAgoDisplay({ ts }: { ts: number }) {
-  const [display, setDisplay] = useState(() => {
-    const diff = Math.max(0, Date.now() - ts)
-    const mins = Math.floor(diff / 60000)
-    if (mins < 1) return 'just now'
-    else if (mins < 60) return `${mins}m ago`
-    else {
-      const hrs = Math.floor(mins / 60)
-      if (hrs < 24) return `${hrs}h ago`
-      else return `${Math.floor(hrs / 24)}d ago`
-    }
-  })
-  
+  const [display, setDisplay] = useState<string | null>(null)
+
   useEffect(() => {
-    // Only update if older than 1 minute (to avoid stale display)
-    const diff = Date.now() - ts
-    if (diff < 60000) return
-    
-    const update = () => {
-      const diff = Math.max(0, Date.now() - ts)
-      const mins = Math.floor(diff / 60000)
-      if (mins < 1) setDisplay('just now')
-      else if (mins < 60) setDisplay(`${mins}m ago`)
-      else {
-        const hrs = Math.floor(mins / 60)
-        if (hrs < 24) setDisplay(`${hrs}h ago`)
-        else setDisplay(`${Math.floor(hrs / 24)}d ago`)
-      }
-    }
-    
+    const update = () => setDisplay(formatRelativeTime(ts))
+    update()
+    // Keep the label honest as time passes (also promotes "Just now" to "1m ago").
     const interval = setInterval(update, 60000)
     return () => clearInterval(interval)
   }, [ts])
-  
-  return <span>{display}</span>
+
+  return <span>{display ?? '—'}</span>
 }
 
 /** Energy card with live countdown timer */
@@ -206,6 +191,9 @@ export function HomeScreen() {
             View all <ChevronRight className="h-3.5 w-3.5" />
           </button>
         </div>
+        {rewardsFeed.length === 0 ? (
+          <EmptyRewards onStart={() => navigate('adventure')} />
+        ) : (
         <div className="flex flex-col divide-y divide-border">
           {rewardsFeed.map((r) => (
             <button
@@ -227,7 +215,31 @@ export function HomeScreen() {
             </button>
           ))}
         </div>
+        )}
       </section>
+    </div>
+  )
+}
+
+/** Shown until the player has actually earned something. */
+function EmptyRewards({ onStart }: { onStart: () => void }) {
+  return (
+    <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-border bg-card px-4 py-10 text-center">
+      <div className="flex h-11 w-11 items-center justify-center rounded-md border border-border bg-surface text-muted-foreground">
+        <Sparkles className="h-5 w-5" />
+      </div>
+      <div>
+        <p className="text-sm font-medium">No rewards yet</p>
+        <p className="mt-1 text-xs text-muted-foreground text-pretty">
+          Complete your first quest and it will show up here.
+        </p>
+      </div>
+      <button
+        onClick={onStart}
+        className="mt-1 rounded-md border border-border bg-surface px-3 py-2 text-xs font-medium transition-colors hover:border-ring"
+      >
+        Start a quest
+      </button>
     </div>
   )
 }
