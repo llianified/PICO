@@ -7,7 +7,7 @@ import { SegmentedProgress } from '@/components/primitives'
 import { PixelSprite } from '@/components/pixel-sprite'
 import { CountUp } from '@/components/ui/count-up'
 import { formatRelativeTime } from '@/lib/mock-data'
-import { useStore, avatarSprite, ENERGY_MAX } from '@/lib/store'
+import { useStore, avatarSprite } from '@/lib/store'
 
 /**
  * Compact "time ago" label for the Recent Rewards feed.

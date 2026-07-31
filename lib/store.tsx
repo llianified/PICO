@@ -748,7 +748,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       rarity: 'Rare',
       slot: 'Artifact',
       description: 'A shimmering relic pulled from the depths of the chest.',
-      unlockedAt: 'Just now',
+      unlockedAt: Date.now(),
     }
     setInventoryItems((prev) => [newItem, ...prev])
 

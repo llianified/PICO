@@ -102,7 +102,7 @@ export function AvatarSheet({ open, onClose }: { open: boolean; onClose: () => v
         </div>
 
         <ActionButton
-          onClick={handleSave}
+          onAction={handleSave}
           disabled={!canSave}
           variant="primary"
           loadingText="Saving"

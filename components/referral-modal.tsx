@@ -5,6 +5,43 @@ import { Copy, Check, Share2 } from 'lucide-react'
 import { motion } from 'motion/react'
 import { useStore } from '@/lib/store'
 
+/**
+ * Copies `text`, reporting whether it actually landed on the clipboard.
+ *
+ * `navigator.clipboard` is undefined on non-secure origins and rejects when
+ * permission is denied, so the async API is awaited inside try/catch and we fall
+ * back to the legacy `execCommand` path before admitting failure. Never throws —
+ * callers branch on the boolean so a success toast can't fire on a failed copy.
+ */
+async function copyText(text: string): Promise<boolean> {
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text)
+      return true
+    }
+  } catch {
+    // Unavailable or denied — try the legacy path below.
+  }
+
+  try {
+    const textarea = document.createElement('textarea')
+    textarea.value = text
+    // Keep the node off-screen but still focusable, which execCommand requires.
+    textarea.setAttribute('readonly', '')
+    textarea.style.position = 'fixed'
+    textarea.style.top = '-9999px'
+    textarea.style.opacity = '0'
+    document.body.appendChild(textarea)
+    textarea.select()
+    textarea.setSelectionRange(0, text.length)
+    const ok = document.execCommand('copy')
+    document.body.removeChild(textarea)
+    return ok
+  } catch {
+    return false
+  }
+}
+
 interface ReferralModalProps {
   isOpen: boolean
   referralCode: string
@@ -19,8 +56,15 @@ export function ReferralModal({ isOpen, referralCode, playerName, onInviteSent, 
 
   const referralLink = `https://pico.game?ref=${referralCode}`
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(referralLink)
+  const handleCopy = async () => {
+    if (!(await copyText(referralLink))) {
+      toast({
+        title: 'Could not copy',
+        description: 'Copying is blocked here — select the link and copy it manually.',
+        variant: 'error',
+      })
+      return
+    }
     setCopied(true)
     toast({ title: 'Copied to clipboard!', variant: 'success' })
     setTimeout(() => setCopied(false), 2000)
