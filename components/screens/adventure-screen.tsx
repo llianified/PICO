@@ -170,8 +170,10 @@ function QuestDetail({ quest, onBack }: { quest: Quest; onBack: () => void }) {
         </div>
       </div>
 
+      <div aria-hidden className="mt-auto min-h-8" />
+
       {quest.state === 'done' ? (
-        <div className="mt-auto flex items-center justify-center gap-1.5 rounded-lg border border-border bg-card px-5 py-4 text-[15px] font-medium text-muted-foreground">
+        <div className="flex items-center justify-center gap-1.5 rounded-lg border border-border bg-card px-5 py-4 text-[15px] font-medium text-muted-foreground">
           <Check className="h-5 w-5" />
           Quest Completed
         </div>
@@ -180,7 +182,7 @@ function QuestDetail({ quest, onBack }: { quest: Quest; onBack: () => void }) {
           onClick={handleComplete}
           disabled={busy}
           aria-busy={busy}
-          className="group mt-auto flex items-center justify-center gap-1.5 rounded-lg bg-primary px-5 py-4 text-[15px] font-medium text-primary-foreground transition-all duration-100 active:scale-[0.99] disabled:opacity-60"
+          className="group flex items-center justify-center gap-1.5 rounded-lg bg-primary px-5 py-4 text-[15px] font-medium text-primary-foreground transition-all duration-100 active:scale-[0.99] disabled:opacity-60"
         >
           {busy ? (
             <>
@@ -198,7 +200,7 @@ function QuestDetail({ quest, onBack }: { quest: Quest; onBack: () => void }) {
           onClick={handleStart}
           disabled={busy || !quest.available}
           aria-busy={busy}
-          className="group mt-auto flex items-center justify-center gap-1.5 rounded-lg bg-primary px-5 py-4 text-[15px] font-medium text-primary-foreground transition-all duration-100 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
+          className="group flex items-center justify-center gap-1.5 rounded-lg bg-primary px-5 py-4 text-[15px] font-medium text-primary-foreground transition-all duration-100 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
         >
           {busy ? (
             <>
