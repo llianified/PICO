@@ -24,9 +24,9 @@ Status as of 2026-08-01. Legend: ✅ Fixed · ⚠️ Mitigated (risk reduced, ro
 |---|---|---|---|---|---|
 | P0 — Critical | 5 | 3 | 2 | 0 | [`PICO_P0_REMEDIATION.md`](./PICO_P0_REMEDIATION.md) |
 | P1 — High | 6 | 3 | 0 | 3 | [`PICO_P1_REMEDIATION.md`](./PICO_P1_REMEDIATION.md) |
-| P2 — Medium | 12 | 4 | 0 | 8 | [`PICO_P2_REMEDIATION.md`](./PICO_P2_REMEDIATION.md) |
-| P3 — Low | 12 | 0 | 0 | 12 | — |
-| **Total** | **35** | **10** | **2** | **23** | |
+| P2 — Medium | 12 | 6 | 0 | 6 | [`PICO_P2_REMEDIATION.md`](./PICO_P2_REMEDIATION.md) |
+| P3 — Low | 12 | 4 | 0 | 8 | [`PICO_P3_REMEDIATION.md`](./PICO_P3_REMEDIATION.md) |
+| **Total** | **35** | **16** | **2** | **17** | |
 
 | Issue | Title | Status | Detail |
 |---|---|---|---|
