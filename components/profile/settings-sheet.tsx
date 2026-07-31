@@ -7,7 +7,6 @@ import {
   Globe,
   Info,
   Palette,
-  RotateCcw,
   Trash2,
   Volume2,
 } from 'lucide-react'
@@ -30,13 +29,11 @@ export function SettingsSheet({ open, onClose }: { open: boolean; onClose: () =>
     setTheme,
     toggleNotifications,
     toggleSound,
-    resetProgress,
     toast,
   } = useStore()
 
   const [sub, setSub] = useState<SubView>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
-  const [confirmReset, setConfirmReset] = useState(false)
 
   const rows = [
     {
@@ -55,14 +52,6 @@ export function SettingsSheet({ open, onClose }: { open: boolean; onClose: () =>
     setConfirmDelete(false)
     onClose()
     toast({ title: 'Account scheduled for deletion', variant: 'error' })
-  }
-
-  async function handleReset() {
-    await new Promise((r) => setTimeout(r, 1200))
-    resetProgress()
-    setConfirmReset(false)
-    onClose()
-    toast({ title: 'Progress reset', description: 'Everything is back to a clean slate.', variant: 'success' })
   }
 
   return (
@@ -85,21 +74,8 @@ export function SettingsSheet({ open, onClose }: { open: boolean; onClose: () =>
           ))}
 
           <button
-            onClick={() => setConfirmReset(true)}
-            className="mt-2 flex items-center gap-3 rounded-lg border border-border bg-card p-4 transition-colors hover:border-muted-foreground/40 active:scale-[0.99]"
-          >
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-border bg-surface">
-              <RotateCcw className="h-4 w-4 text-muted-foreground" />
-            </div>
-            <span className="min-w-0 flex-1 truncate text-left text-sm font-medium">
-              Reset Progress
-            </span>
-            <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-          </button>
-
-          <button
             onClick={() => setConfirmDelete(true)}
-            className="flex items-center gap-3 rounded-lg border border-destructive/40 bg-card p-4 transition-colors hover:border-destructive active:scale-[0.99]"
+            className="mt-2 flex items-center gap-3 rounded-lg border border-destructive/40 bg-card p-4 transition-colors hover:border-destructive active:scale-[0.99]"
           >
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-destructive/40 bg-surface">
               <Trash2 className="h-4 w-4 text-destructive" />
@@ -203,38 +179,6 @@ export function SettingsSheet({ open, onClose }: { open: boolean; onClose: () =>
           </p>
         </div>
       </BottomSheet>
-
-      {/* Reset confirmation */}
-      <Modal open={confirmReset} onClose={() => setConfirmReset(false)}>
-        <div className="flex flex-col items-center gap-5 text-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-xl border border-border bg-surface">
-            <RotateCcw className="h-7 w-7 text-muted-foreground" />
-          </div>
-          <div>
-            <p className="text-lg font-medium tracking-tight">Reset Progress?</p>
-            <p className="mt-2 text-sm text-muted-foreground text-pretty">
-              This clears your XP, level, balance, quests, inventory, achievements, and history back
-              to a clean slate. Your account stays, but this cannot be undone.
-            </p>
-          </div>
-          <div className="flex w-full gap-3">
-            <button
-              onClick={() => setConfirmReset(false)}
-              className="flex-1 rounded-lg border border-border bg-surface py-3 text-sm font-medium transition-colors hover:border-muted-foreground/60 active:scale-[0.99]"
-            >
-              Cancel
-            </button>
-            <ActionButton
-              onClick={handleReset}
-              loadingText="Resetting"
-              successText="Reset"
-              className="flex-1"
-            >
-              Reset
-            </ActionButton>
-          </div>
-        </div>
-      </Modal>
 
       {/* Delete confirmation */}
       <Modal open={confirmDelete} onClose={() => setConfirmDelete(false)}>
