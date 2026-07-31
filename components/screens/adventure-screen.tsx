@@ -8,7 +8,7 @@ import { PixelSprite } from '@/components/pixel-sprite'
 import { BottomSheet } from '@/components/ui/sheet'
 import { ReferralModal } from '@/components/referral-modal'
 import { useStore } from '@/lib/store'
-import { DEFAULT_SURVEY, formatRp, questMoneyReward, type Quest } from '@/lib/mock-data'
+import { DEFAULT_SURVEY, formatRp, questKeyReward, questMoneyReward, type Quest } from '@/lib/mock-data'
 
 const tabs = ['Story', 'Daily', 'Weekly', 'Event', 'Side'] as const
 
@@ -195,6 +195,10 @@ function QuestDetail({ quest, onBack }: { quest: Quest; onBack: () => void }) {
     }
   }
 
+  // Previewed keys must come from the shared formula, never a local copy, so the
+  // preview can never disagree with what `completeQuest` actually grants.
+  const keyReward = questKeyReward(quest.xpValue)
+
   return (
     <>
     <div className="flex min-h-full flex-col px-6 pb-6 pt-2">
@@ -256,7 +260,7 @@ function QuestDetail({ quest, onBack }: { quest: Quest; onBack: () => void }) {
                 <PixelSprite name="key" size={18} />
               </div>
               <span className="font-mono text-sm font-medium tnum">
-                +{quest.xpValue >= 500 ? 2 : 1} Key{quest.xpValue >= 500 ? 's' : ''}
+                +{keyReward} Key{keyReward > 1 ? 's' : ''}
               </span>
             </div>
             <div className="flex items-center gap-3 p-4">

@@ -3,7 +3,7 @@
 Checklist for every finding in [`PICO_PRODUCTION_AUDIT.md`](./PICO_PRODUCTION_AUDIT.md).
 Sequencing and rationale are in [`ROADMAP.md`](./ROADMAP.md).
 
-**8 of 35 fixed · 2 mitigated · 25 open.**
+**9 of 35 fixed · 2 mitigated · 24 open.**
 
 Legend: `[x]` fixed · `[~]` mitigated (risk reduced, root cause needs a backend) ·
 `[ ]` open.
@@ -56,10 +56,12 @@ Log: [`PICO_P1_REMEDIATION.md`](./PICO_P1_REMEDIATION.md) · 3 of 6 fixed.
 
 ## P2
 
-2 of 12 fixed, both incidentally during the P0 pass.
+Log: [`PICO_P2_REMEDIATION.md`](./PICO_P2_REMEDIATION.md) · 3 of 12 fixed — P2-10 and P2-11
+incidentally during the P0 pass, P2-2 directly.
 
 - [ ] **P2-1** — Quest reward preview omits coins that are actually granted
-- [ ] **P2-2** — Key reward formula duplicated inline instead of using `questKeyReward()`
+- [x] **P2-2** — Key reward formula duplicated inline instead of using `questKeyReward()`
+  - Quest detail preview now derives keys from `questKeyReward(quest.xpValue)`; reward values unchanged
 - [ ] **P2-3** — Progress bar shows 50% while the label reads "0 / 1"
 - [ ] **P2-4** — Chest opening bypasses the affordability check it appears to enforce
   - Do this *with* the server ledger, not before it
@@ -141,6 +143,7 @@ Every fix must also update, per [`CONTRIBUTING.md`](./CONTRIBUTING.md):
 
 1. [`CHANGELOG.md`](./CHANGELOG.md) — under `## Unreleased`
 2. This file — tick the item
-3. The relevant remediation log — `PICO_P0_REMEDIATION.md` or `PICO_P1_REMEDIATION.md`
+3. The relevant remediation log — `PICO_P0_REMEDIATION.md`, `PICO_P1_REMEDIATION.md` or
+   `PICO_P2_REMEDIATION.md`
 4. [`PICO_PRODUCTION_AUDIT.md`](./PICO_PRODUCTION_AUDIT.md) — inline **Status** line and the
    status summary table, keeping the original finding intact
