@@ -301,33 +301,6 @@ export function xpNeededForLevel(level: number): number {
   return LEVEL_XP_BASE * level * level
 }
 
-export interface LevelProgress {
-  /** Current level (1-based). */
-  level: number
-  /** XP accumulated within the current level. */
-  levelXp: number
-  /** XP required to advance from the current level to the next. */
-  levelXpNeeded: number
-}
-
-/**
- * Single source of truth for leveling. Derives the level and in-level progress
- * from the player's lifetime XP, walking the quadratic curve. Keeping this as a
- * pure derivation (instead of separate mutable state) guarantees the progress
- * bar can never drift past 100% or disagree with the level.
- */
-export function levelProgressFromTotalXp(totalXp: number): LevelProgress {
-  let level = 1
-  let remaining = Math.max(0, Math.floor(totalXp))
-  let needed = xpNeededForLevel(level)
-  while (remaining >= needed) {
-    remaining -= needed
-    level += 1
-    needed = xpNeededForLevel(level)
-  }
-  return { level, levelXp: remaining, levelXpNeeded: needed }
-}
-
 /**
  * Reconciles Story quest availability against the player's level. A Story quest
  * unlocks automatically once the player reaches its `levelRequired`. Already
