@@ -78,6 +78,7 @@ type StoreValue = {
   // profile / progression
   name: string
   avatarId: string
+  referralCode: string
   level: number
   totalXp: number
   levelXp: number
@@ -166,6 +167,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const [name, setName] = useState('Explorer')
   const [avatarId, setAvatarId] = useState<string>('explorer')
+  const referralCode = useMemo(() => {
+    // Generate a consistent referral code based on user name and avatar
+    const seed = `${name}-${avatarId}-pico`
+    let hash = 0
+    for (let i = 0; i < seed.length; i++) {
+      const char = seed.charCodeAt(i)
+      hash = (hash << 5) - hash + char
+      hash = hash & hash // Convert to 32bit integer
+    }
+    return `PICO${Math.abs(hash).toString(36).toUpperCase().slice(0, 6)}`
+  }, [name, avatarId])
   const [level, setLevel] = useState(1)
   const [totalXp, setTotalXp] = useState(0)
   const [levelXp, setLevelXp] = useState(0)
@@ -678,6 +690,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       navigate,
       name,
       avatarId,
+      referralCode,
       level,
       totalXp,
       levelXp,

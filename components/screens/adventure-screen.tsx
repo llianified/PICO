@@ -6,6 +6,7 @@ import { Check, ChevronLeft, ChevronRight, HelpCircle, Loader2, Play, Compass } 
 import { Progress, SegmentedProgress, Tag } from '@/components/primitives'
 import { PixelSprite } from '@/components/pixel-sprite'
 import { BottomSheet } from '@/components/ui/sheet'
+import { ReferralModal } from '@/components/referral-modal'
 import { useStore } from '@/lib/store'
 import { DEFAULT_SURVEY, formatRp, questMoneyReward, type Quest } from '@/lib/mock-data'
 
@@ -109,11 +110,12 @@ function QuestSurvey({
 }
 
 function QuestDetail({ quest, onBack }: { quest: Quest; onBack: () => void }) {
-  const { startQuest, setQuestProgress, completeQuest, toast } = useStore()
+  const { startQuest, setQuestProgress, completeQuest, toast, referralCode, name } = useStore()
   const [busy, setBusy] = useState(false)
   const [xpBurst, setXpBurst] = useState(false)
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const [hasAutoStarted, setHasAutoStarted] = useState(false)
+  const [showReferralModal, setShowReferralModal] = useState(false)
 
   // Auto-start quests with progress tracking (like checkin quests)
   useEffect(() => {
@@ -178,6 +180,7 @@ function QuestDetail({ quest, onBack }: { quest: Quest; onBack: () => void }) {
   }
 
   return (
+    <>
     <div className="flex min-h-full flex-col px-6 pb-6 pt-2">
       <header className="mb-6 flex items-center">
         <button
@@ -282,7 +285,11 @@ function QuestDetail({ quest, onBack }: { quest: Quest; onBack: () => void }) {
           {quest.progress && quest.progress.current < quest.progress.total ? (
             <button
               onClick={() => {
-                setQuestProgress(quest.id, quest.progress!.current + 1)
+                if (quest.id === 'invite') {
+                  setShowReferralModal(true)
+                } else {
+                  setQuestProgress(quest.id, quest.progress!.current + 1)
+                }
               }}
               disabled={busy}
               aria-busy={busy}
@@ -290,11 +297,11 @@ function QuestDetail({ quest, onBack }: { quest: Quest; onBack: () => void }) {
             >
               {busy ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin" /> Checking in…
+                  <Loader2 className="h-4 w-4 animate-spin" /> {quest.id === 'invite' ? 'Opening...' : 'Checking in…'}
                 </>
               ) : (
                 <>
-                  Check In
+                  {quest.id === 'invite' ? 'Get Referral Link' : 'Check In'}
                   <Check className="h-5 w-5 transition-transform duration-150 group-hover:scale-110" />
                 </>
               )}
@@ -343,6 +350,17 @@ function QuestDetail({ quest, onBack }: { quest: Quest; onBack: () => void }) {
         </button>
       )}
     </div>
+
+      <ReferralModal
+        isOpen={showReferralModal}
+        referralCode={referralCode}
+        playerName={name}
+        onInviteSent={() => {
+          setQuestProgress(quest.id, quest.progress!.current + 1)
+        }}
+        onClose={() => setShowReferralModal(false)}
+      />
+    </>
   )
 }
 
