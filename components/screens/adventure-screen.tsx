@@ -144,6 +144,20 @@ function QuestDetail({ quest, onBack }: { quest: Quest; onBack: () => void }) {
       const loot = [`+${xp} XP`, `+${keys} Key${keys > 1 ? 's' : ''}`]
       if (chests > 0) loot.push(`+${chests} Chest`)
       toast({ title: 'Quest completed', description: loot.join(' · '), variant: 'success' })
+    } catch (err) {
+      if (err instanceof Error && err.message === 'NO_ENERGY') {
+        toast({
+          title: 'Not enough energy',
+          description: 'Recharge your energy before completing this quest.',
+          variant: 'error',
+        })
+      } else {
+        toast({
+          title: 'Could not complete quest',
+          description: 'Something went wrong. Please try again.',
+          variant: 'error',
+        })
+      }
     } finally {
       setBusy(false)
     }
