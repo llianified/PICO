@@ -384,30 +384,35 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const addXp = useCallback((amount: number) => {
     setTotalXp((prev) => prev + amount)
     
-    // Use current ref values to avoid stale closures
-    let xp = levelXpRef.current + amount
-    let lvl = levelRef.current
-    let needed = levelXpNeededRef.current
-    let leveledUp = false
-    let newLevel = 0
+    // Calculate all the leveling changes first, then apply them atomically
+    setLevelXp((prevXp) => {
+      setLevel((prevLevel) => {
+        let xp = prevXp + amount
+        let lvl = prevLevel
+        let needed = xpNeededForLevel(lvl)
+        let leveledUp = false
+        let newLevel = 0
 
-    // Calculate all level ups in one pass
-    while (xp >= needed) {
-      xp -= needed
-      lvl += 1
-      needed = xpNeededForLevel(lvl)
-      leveledUp = true
-      newLevel = lvl
-    }
+        // Calculate all level ups
+        while (xp >= needed) {
+          xp -= needed
+          lvl += 1
+          needed = xpNeededForLevel(lvl)
+          leveledUp = true
+          newLevel = lvl
+        }
 
-    // Apply all state changes at once
-    setLevel(lvl)
-    setLevelXp(xp)
-    setLevelXpNeeded(needed)
+        // Update the XP needed for the final level AFTER we've calculated everything
+        setLevelXpNeeded(needed)
 
-    if (leveledUp) {
-      setTimeout(() => setLevelUp({ level: newLevel }), 400)
-    }
+        if (leveledUp) {
+          setTimeout(() => setLevelUp({ level: newLevel }), 400)
+        }
+
+        return lvl
+      })
+      return xp
+    })
   }, [])
 
   const unlockAchievementProgress = useCallback((id: string, amount = 1) => {
