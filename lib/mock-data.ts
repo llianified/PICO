@@ -289,16 +289,16 @@ export function questMoneyReward(xp: number): number {
 }
 
 // ---------------------------------------------------------------------------
-// Leveling curve — the XP required grows 15% each level (unchanged curve), but
-// the base is tuned so leveling is actually achievable from quest rewards.
-// A single day of daily quests grants ~950 XP, enough for an early level-up.
+// Leveling curve — quadratic growth. The first level-up (1 → 2) costs the base
+// 50 XP, and each subsequent level scales with level², so higher levels get
+// meaningfully harder instead of leveling up every few quests.
+//   Lvl 1→2: 50   Lvl 2→3: 200   Lvl 3→4: 450   Lvl 4→5: 800   Lvl 5→6: 1250
 // ---------------------------------------------------------------------------
-export const LEVEL_XP_BASE = 500
-export const LEVEL_XP_GROWTH = 1.15
+export const LEVEL_XP_BASE = 50
 
 /** XP required to advance FROM the given level to the next one. */
 export function xpNeededForLevel(level: number): number {
-  return Math.round(LEVEL_XP_BASE * Math.pow(LEVEL_XP_GROWTH, level - 1))
+  return LEVEL_XP_BASE * level * level
 }
 
 /**
