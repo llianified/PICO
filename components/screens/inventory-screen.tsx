@@ -13,9 +13,9 @@ const items: { label: string; value: string; sprite: SpriteName }[] = [
 
 export function InventoryScreen() {
   return (
-    <div className="flex flex-col gap-6 px-6 pb-6 pt-2">
+    <div className="flex flex-col gap-8 px-6 pb-6 pt-2">
       <header>
-        <h1 className="text-2xl font-semibold tracking-tight">Inventory</h1>
+        <h1 className="text-3xl font-medium tracking-tight">Inventory</h1>
       </header>
 
       {/* Collection progress */}
@@ -40,9 +40,7 @@ export function InventoryScreen() {
             <span className="text-xs text-muted-foreground">{item.label}</span>
             <div className="flex items-end justify-between gap-2">
               <PixelSprite name={item.sprite} size={28} className="shrink-0" />
-              <span className="whitespace-nowrap font-mono text-xl font-semibold tnum">
-                {item.value}
-              </span>
+              <span className="font-pixel whitespace-nowrap text-base tnum">{item.value}</span>
             </div>
           </div>
         ))}
@@ -62,9 +60,7 @@ export function InventoryScreen() {
           </div>
           <div className="flex-1">
             <p className="text-sm font-medium">Explorer&apos;s Hat</p>
-            <p className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
-              Common · Head
-            </p>
+            <p className="pixel-label mt-1.5 text-[9px] text-muted-foreground">Common · Head</p>
           </div>
           <span className="font-mono text-[11px] text-muted-foreground">2h ago</span>
         </div>

@@ -17,9 +17,9 @@ const achievements = [
 
 export function ProfileScreen() {
   return (
-    <div className="flex flex-col gap-6 px-6 pb-6 pt-2">
+    <div className="flex flex-col gap-8 px-6 pb-6 pt-2">
       <header className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold tracking-tight">Profile</h1>
+        <h1 className="text-3xl font-medium tracking-tight">Profile</h1>
         <Settings className="h-5 w-5 text-muted-foreground" />
       </header>
 
@@ -35,13 +35,11 @@ export function ProfileScreen() {
           />
         </div>
         <div className="flex-1">
-          <span className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
-            Level 12
-          </span>
-          <p className="text-xl font-semibold tracking-tight">Explorer</p>
-          <div className="mt-2">
+          <span className="pixel-label text-[10px] text-muted-foreground">Level 12</span>
+          <p className="mt-1.5 text-xl font-medium tracking-tight">Explorer</p>
+          <div className="mt-3">
             <SegmentedProgress value={35} segments={20} />
-            <p className="mt-1.5 font-mono text-[10px] text-muted-foreground tnum">
+            <p className="pixel-label mt-2.5 text-[9px] text-muted-foreground tnum">
               70,000 / 200,000 XP
             </p>
           </div>
@@ -55,7 +53,7 @@ export function ProfileScreen() {
             key={s.label}
             className="flex flex-col items-center gap-1 rounded-lg border border-border bg-card p-4 text-center"
           >
-            <span className="font-mono text-2xl font-semibold tnum">{s.value}</span>
+            <span className="font-mono text-2xl font-medium tnum">{s.value}</span>
             <span className="text-[10px] leading-tight text-muted-foreground text-pretty">
               {s.label}
             </span>
@@ -84,7 +82,7 @@ export function ProfileScreen() {
                 <p className="text-sm font-medium">{a.title}</p>
                 <p className="text-xs text-muted-foreground">{a.subtitle}</p>
               </div>
-              <span className="font-mono text-xs text-muted-foreground tnum">{a.progress}</span>
+              <span className="pixel-label text-[9px] text-muted-foreground tnum">{a.progress}</span>
             </div>
           ))}
         </div>
