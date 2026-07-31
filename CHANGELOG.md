@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-08-01
+
+### Fixed
+- P1-2 — Disabled Max button below minimum withdrawal.
+- Added remaining balance hint.
+- Verified existing withdrawal flow.
+
 ## 2026-07-31
 
 ### Fixed

@@ -120,6 +120,7 @@ Everything below is real and worth fixing, but items P0-2 and P0-3 in particular
 
 ### P1-2 · "Max" button produces a guaranteed-invalid amount below the minimum
 
+- **Status:** ✅ **Fixed.** "Max" now carries `disabled={balance < MIN_WITHDRAW}`, matching the `disabled={q > balance}` condition the `QUICK` presets already used, so the control can no longer fill an amount the validator will reject. The helper line below the presets swaps from the generic *"Minimum Rp10.000. No fees on withdrawals."* to *"Rp9.800 more to withdraw. Minimum Rp10.000."* whenever `balance < MIN_WITHDRAW`, so the disabled state explains itself and quantifies the shortfall instead of leaving the user to guess. Design, layout and the existing error slot are unchanged; no withdraw business logic was touched. Verified live at `Rp200` (Max inert, hint shown) and at `Rp37.500` (Max fills the full balance, `aria-invalid=false`, Continue enabled).
 - **Severity:** P1
 - **Files:** `components/wallet/withdraw-sheet.tsx:139-147`
 - **Root cause:** Unlike the `QUICK` presets (which carry `disabled={q > balance}`), "Max" has no disabled condition and blindly sets `amount = balance`. When `balance < MIN_WITHDRAW` this is always invalid.
@@ -379,7 +380,7 @@ Choose the backend and whether real money is in scope. Every P0 either depends o
 
 ### Phase 3 — Repair core loops (~1 week)
 
-9. **P1-1 + P1-2** withdraw flow (inline connect, Max guard)
+9. ✅ **P1-1 + P1-2** withdraw flow (inline connect, Max guard) — *both done; the remaining withdraw work is the Phase 2 server ledger (P0-3)*
 10. **P1-3** level-up queue (reuse the existing achievement-queue pattern)
 11. **P2-4 + P2-5** move guards server-side alongside the new ledger
 12. **P1-4** derive tabs from real content
