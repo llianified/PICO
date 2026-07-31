@@ -10,6 +10,20 @@ export type SurveyQuestion = {
   options: string[]
 }
 
+/** Fallback task shown for any started quest that doesn't define its own survey. */
+export const DEFAULT_SURVEY: SurveyQuestion[] = [
+  {
+    id: 'q1',
+    prompt: 'How are you feeling about this quest?',
+    options: ['Excited', 'Curious', 'Neutral', 'Not sure yet'],
+  },
+  {
+    id: 'q2',
+    prompt: 'How much time can you spend on it today?',
+    options: ['A few minutes', 'Around 30 minutes', 'An hour or more', 'As long as it takes'],
+  },
+]
+
 export type Quest = {
   id: string
   title: string

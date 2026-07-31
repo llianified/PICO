@@ -7,7 +7,7 @@ import { Progress, SegmentedProgress, Tag } from '@/components/primitives'
 import { PixelSprite } from '@/components/pixel-sprite'
 import { BottomSheet } from '@/components/ui/sheet'
 import { useStore } from '@/lib/store'
-import type { Quest } from '@/lib/mock-data'
+import { DEFAULT_SURVEY, type Quest } from '@/lib/mock-data'
 
 const tabs = ['Story', 'Daily', 'Weekly', 'Event', 'Side'] as const
 
@@ -109,8 +109,9 @@ function QuestDetail({ quest, onBack }: { quest: Quest; onBack: () => void }) {
   const [xpBurst, setXpBurst] = useState(false)
   const [answers, setAnswers] = useState<Record<string, string>>({})
 
-  const hasSurvey = quest.state === 'active' && !!quest.survey?.length
-  const surveyComplete = !quest.survey?.length || quest.survey.every((q) => answers[q.id])
+  const surveyQuestions = quest.survey?.length ? quest.survey : DEFAULT_SURVEY
+  const hasSurvey = quest.state === 'active'
+  const surveyComplete = surveyQuestions.every((q) => answers[q.id])
 
   const progressPct = quest.progress
     ? (quest.progress.current / quest.progress.total) * 100
@@ -224,9 +225,9 @@ function QuestDetail({ quest, onBack }: { quest: Quest; onBack: () => void }) {
           <SegmentedProgress value={progressPct} segments={16} />
         </div>
 
-        {hasSurvey && quest.survey && (
+        {hasSurvey && (
           <QuestSurvey
-            survey={quest.survey}
+            survey={surveyQuestions}
             answers={answers}
             onAnswer={(qid, opt) => setAnswers((prev) => ({ ...prev, [qid]: opt }))}
           />
