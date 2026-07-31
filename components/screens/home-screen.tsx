@@ -1,11 +1,12 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { ChevronRight, Flame, Zap } from 'lucide-react'
 import { SegmentedProgress } from '@/components/primitives'
 import { PixelSprite } from '@/components/pixel-sprite'
 import { CountUp } from '@/components/ui/count-up'
-import { useStore, avatarSprite } from '@/lib/store'
+import { useStore, avatarSprite, ENERGY_MAX } from '@/lib/store'
 
 /** Compact "time ago" label for the Recent Rewards feed. */
 function timeAgo(ts: number): string {
@@ -16,6 +17,50 @@ function timeAgo(ts: number): string {
   const hrs = Math.floor(mins / 60)
   if (hrs < 24) return `${hrs}h ago`
   return `${Math.floor(hrs / 24)}d ago`
+}
+
+/** Energy card with live countdown timer */
+function EnergyCard({ energy, energyMax, nextEnergyAt }: { energy: number; energyMax: number; nextEnergyAt: number | null }) {
+  const [timeRemaining, setTimeRemaining] = useState<string>('--:--')
+
+  useEffect(() => {
+    if (energy >= energyMax || nextEnergyAt === null) {
+      setTimeRemaining('--:--')
+      return
+    }
+
+    const updateTimer = () => {
+      const now = Date.now()
+      const remaining = Math.max(0, nextEnergyAt - now)
+      const mins = Math.floor(remaining / 60000)
+      const secs = Math.floor((remaining % 60000) / 1000)
+      setTimeRemaining(`${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`)
+    }
+
+    updateTimer()
+    const interval = setInterval(updateTimer, 1000)
+    return () => clearInterval(interval)
+  }, [energy, energyMax, nextEnergyAt])
+
+  return (
+    <div className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4 transition-colors duration-150 hover:border-ring">
+      <div className="flex items-center gap-2 text-muted-foreground">
+        <Zap className="h-4 w-4" />
+        <span className="text-xs">Energy</span>
+      </div>
+      <div>
+        <div className="flex items-baseline gap-1.5">
+          <span className="font-mono text-3xl font-medium tnum">{energy}</span>
+          <span className="font-mono text-sm text-muted-foreground">/ {energyMax}</span>
+        </div>
+        {energy < energyMax && nextEnergyAt !== null ? (
+          <p className="pixel-label mt-2 text-[9px] text-muted-foreground">+1 in {timeRemaining}</p>
+        ) : (
+          <p className="pixel-label mt-2 text-[9px] text-muted-foreground">Full</p>
+        )}
+      </div>
+    </div>
+  )
 }
 
 export function HomeScreen() {
@@ -29,6 +74,7 @@ export function HomeScreen() {
     streak,
     energy,
     energyMax,
+    nextEnergyAt,
     equippedItems,
     rewardsFeed,
     navigate,
@@ -114,19 +160,7 @@ export function HomeScreen() {
             <span className="text-xs text-muted-foreground">days</span>
           </div>
         </div>
-        <div className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4 transition-colors duration-150 hover:border-ring">
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <Zap className="h-4 w-4" />
-            <span className="text-xs">Energy</span>
-          </div>
-          <div>
-            <div className="flex items-baseline gap-1.5">
-              <span className="font-mono text-3xl font-medium tnum">{energy}</span>
-              <span className="font-mono text-sm text-muted-foreground">/ {energyMax}</span>
-            </div>
-            <p className="pixel-label mt-2 text-[9px] text-muted-foreground">+1 in 05:30</p>
-          </div>
-        </div>
+        <EnergyCard energy={energy} energyMax={energyMax} nextEnergyAt={nextEnergyAt} />
       </section>
 
       {/* Recent Rewards */}

@@ -387,4 +387,29 @@ export const initialLoginDates = makeConsecutiveDays(0)
  * Steps badge claimed, survey reward matching the first transactions) so the
  * feed is internally consistent from the very first render.
  */
-export const initialRewardsFeed: RewardFeedItem[] = []
+export const initialRewardsFeed: RewardFeedItem[] = [
+  {
+    id: 'rw1',
+    sprite: 'trophy',
+    title: 'Quest Completed',
+    subtitle: 'Gather 100 Gold · +50 Coins',
+    value: '+150 XP',
+    createdAt: Date.now() - 5 * 60000, // 5 mins ago
+  },
+  {
+    id: 'rw2',
+    sprite: 'chest',
+    title: 'Chest Opened',
+    subtitle: 'Found a Rare Item',
+    value: 'Legendary Sword',
+    createdAt: Date.now() - 15 * 60000, // 15 mins ago
+  },
+  {
+    id: 'rw3',
+    sprite: 'coin',
+    title: 'Money Earned',
+    subtitle: 'Daily bonus',
+    value: '+5,000 Rp',
+    createdAt: Date.now() - 1 * 3600000, // 1 hour ago
+  },
+]

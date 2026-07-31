@@ -204,12 +204,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const questsRef = useRef(quests)
   questsRef.current = quests
 
-  const [chests, setChests] = useState(0)
-  const [keys, setKeys] = useState(0)
-  const [coins, setCoins] = useState(0)
-  const [artifacts, setArtifacts] = useState(0)
-  const [badges, setBadges] = useState(0)
-  const [collectionOwned, setCollectionOwned] = useState(0)
+  const [chests, setChests] = useState(2)
+  const [keys, setKeys] = useState(1)
+  const [coins, setCoins] = useState(5000)
+  const [artifacts, setArtifacts] = useState(1)
+  const [badges, setBadges] = useState(1)
+  const [collectionOwned, setCollectionOwned] = useState(12)
   const collectionTotal = 48
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>(initialInventoryItems)
   // Nothing equipped on a fresh start — the player has no items yet.
@@ -607,13 +607,25 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     await delay(700)
     setCoins((c) => c - KEY_COST)
     setKeys((k) => k + 1)
-  }, [])
+    logReward({
+      sprite: 'key',
+      title: 'Key Purchased',
+      subtitle: `Inventory Shop`,
+      value: `-${formatCompact(KEY_COST)} coins`,
+    })
+  }, [logReward])
 
   const buyChest = useCallback(async () => {
     await delay(700)
     setCoins((c) => c - CHEST_COST)
     setChests((c) => c + 1)
-  }, [])
+    logReward({
+      sprite: 'chest',
+      title: 'Chest Purchased',
+      subtitle: `Inventory Shop`,
+      value: `-${formatCompact(CHEST_COST)} coins`,
+    })
+  }, [logReward])
 
   const updateProfile = useCallback((data: { name?: string; avatarId?: string }) => {
     if (data.name !== undefined) setName(data.name)
