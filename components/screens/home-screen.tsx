@@ -97,7 +97,7 @@ export function HomeScreen() {
   const avatar = avatarSprite(avatarId)
   const isDefaultAvatar = avatarId === 'explorer'
   const equippedGear = equippedItems[0]
-  const xpPercent = Math.min(1, levelXp / levelXpNeeded)
+  const xpPercent = Math.min(100, (levelXp / levelXpNeeded) * 100)
 
   return (
     <div className="flex flex-col gap-8 px-6 pb-6 pt-2">
