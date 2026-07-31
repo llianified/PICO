@@ -16,6 +16,8 @@
   --color-primary-foreground: var(--primary-foreground);
   --color-accent: var(--accent);
   --color-ring: var(--ring);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
 
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
@@ -43,6 +45,8 @@
   --primary-foreground: #090909;
   --accent: #ffffff;
   --ring: #3a3a3a;
+  --destructive: #b4413c;
+  --destructive-foreground: #ffffff;
 }
 
 @layer base {

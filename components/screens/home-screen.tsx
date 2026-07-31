@@ -1,59 +1,84 @@
-import Image from 'next/image'
-import { ChevronRight, Flame, Zap } from 'lucide-react'
-import { SegmentedProgress } from '@/components/primitives'
-import { PixelSprite, type SpriteName } from '@/components/pixel-sprite'
+'use client'
 
-const rewards: {
-  sprite: SpriteName
-  title: string
-  subtitle: string
-  xp: string
-  time: string
-}[] = [
-  { sprite: 'trophy', title: 'Quest Completed', subtitle: 'Daily Check-in', xp: '+100 XP', time: '2m ago' },
-  { sprite: 'shield', title: 'New Badge', subtitle: 'First Steps', xp: '+100 XP', time: '2m ago' },
-  { sprite: 'star', title: 'XP Earned', subtitle: 'Daily Quest', xp: '+250 XP', time: '10m ago' },
-]
+import { useState } from 'react'
+import { Bell, ChevronRight, Flame, Zap } from 'lucide-react'
+import { SegmentedProgress } from '@/components/primitives'
+import { PixelSprite } from '@/components/pixel-sprite'
+import { AnimatedNumber } from '@/components/ui/animated-number'
+import { EmptyState } from '@/components/ui/empty-state'
+import { NotificationsSheet } from '@/components/sheets/settings-sheets'
+import { useNavigate } from '@/components/app-shell'
+import { useGame, AVATARS, formatXp } from '@/lib/store'
 
 export function HomeScreen() {
+  const {
+    name,
+    level,
+    totalXp,
+    levelXp,
+    levelTarget,
+    streak,
+    energy,
+    energyMax,
+    avatarId,
+    rewards,
+    unreadCount,
+  } = useGame()
+  const navigate = useNavigate()
+  const [showNotifications, setShowNotifications] = useState(false)
+
+  const avatar = AVATARS.find((a) => a.id === avatarId) ?? AVATARS[0]
+
   return (
     <div className="flex flex-col gap-8 px-6 pb-6 pt-2">
       {/* Greeting */}
       <header className="flex items-start justify-between">
         <div>
           <p className="text-[13px] text-muted-foreground">Good Evening,</p>
-          <h1 className="mt-0.5 text-3xl font-medium tracking-tight text-balance">Explorer</h1>
+          <h1 className="mt-0.5 text-3xl font-medium tracking-tight text-balance">{name}</h1>
         </div>
-        <button
-          className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-lg border border-border bg-card transition-colors duration-150 hover:border-ring active:scale-95"
-          aria-label="Open profile"
-        >
-          <Image
-            src="/pixel/avatar.png"
-            alt="Your avatar"
-            width={40}
-            height={40}
-            className="pixelated h-9 w-9 object-contain"
-          />
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowNotifications(true)}
+            className="relative flex h-12 w-12 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground transition-colors duration-150 hover:border-ring hover:text-foreground active:scale-95"
+            aria-label={`Notifications${unreadCount ? `, ${unreadCount} unread` : ''}`}
+          >
+            <Bell className="h-5 w-5" />
+            {unreadCount > 0 && (
+              <span className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-primary ring-2 ring-card" />
+            )}
+          </button>
+          <button
+            onClick={() => navigate('profile')}
+            className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-lg border border-border bg-card text-foreground transition-colors duration-150 hover:border-ring active:scale-95"
+            aria-label="Open profile"
+          >
+            <PixelSprite name={avatar.sprite} size={26} />
+          </button>
+        </div>
       </header>
 
       {/* Level / XP */}
       <section className="flex flex-col gap-3">
-        <span className="pixel-label text-[10px] text-muted-foreground">Level 12</span>
+        <span className="pixel-label text-[10px] text-muted-foreground">Level {level}</span>
         <div className="flex items-baseline gap-2">
-          <span className="font-mono text-4xl font-medium tracking-tight tnum">142,550</span>
+          <span className="font-mono text-4xl font-medium tracking-tight tnum">
+            <AnimatedNumber value={totalXp} />
+          </span>
           <span className="pixel-label text-[10px] text-muted-foreground">XP</span>
         </div>
-        <SegmentedProgress value={35} segments={24} />
+        <SegmentedProgress value={Math.round((levelXp / levelTarget) * 100)} segments={24} />
         <div className="flex justify-between font-mono text-xs text-muted-foreground tnum">
-          <span>70,000</span>
-          <span>200,000</span>
+          <span>{formatXp(levelXp)}</span>
+          <span>{formatXp(levelTarget)}</span>
         </div>
       </section>
 
       {/* Continue */}
-      <button className="group flex items-center justify-between rounded-lg bg-primary px-5 py-4 text-primary-foreground transition-transform duration-100 active:scale-[0.99]">
+      <button
+        onClick={() => navigate('adventure')}
+        className="group flex items-center justify-between rounded-lg bg-primary px-5 py-4 text-primary-foreground transition-transform duration-100 active:scale-[0.99]"
+      >
         <span className="text-[15px] font-medium">Continue Adventure</span>
         <ChevronRight className="h-5 w-5 transition-transform duration-150 group-hover:translate-x-0.5" />
       </button>
@@ -66,7 +91,7 @@ export function HomeScreen() {
             <span className="text-xs">Daily Streak</span>
           </div>
           <div className="flex items-baseline gap-1.5">
-            <span className="font-mono text-3xl font-medium tnum">12</span>
+            <span className="font-mono text-3xl font-medium tnum">{streak}</span>
             <span className="text-xs text-muted-foreground">days</span>
           </div>
         </div>
@@ -77,8 +102,10 @@ export function HomeScreen() {
           </div>
           <div>
             <div className="flex items-baseline gap-1.5">
-              <span className="font-mono text-3xl font-medium tnum">24</span>
-              <span className="font-mono text-sm text-muted-foreground">/ 30</span>
+              <span className="font-mono text-3xl font-medium tnum">
+                <AnimatedNumber value={energy} duration={400} />
+              </span>
+              <span className="font-mono text-sm text-muted-foreground">/ {energyMax}</span>
             </div>
             <p className="pixel-label mt-2 text-[9px] text-muted-foreground">+1 in 05:30</p>
           </div>
@@ -89,31 +116,45 @@ export function HomeScreen() {
       <section className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-medium">Recent Rewards</h2>
-          <button className="flex items-center gap-0.5 text-xs text-muted-foreground transition-colors hover:text-foreground">
+          <button
+            onClick={() => navigate('inventory')}
+            className="flex items-center gap-0.5 text-xs text-muted-foreground transition-colors hover:text-foreground active:scale-95"
+          >
             View all <ChevronRight className="h-3.5 w-3.5" />
           </button>
         </div>
-        <div className="flex flex-col divide-y divide-border">
-          {rewards.map((r) => (
-            <button
-              key={r.title}
-              className="-mx-2 flex items-center gap-3 rounded-md px-2 py-3 text-left transition-colors duration-150 hover:bg-surface"
-            >
-              <div className="flex h-9 w-9 items-center justify-center rounded-md border border-border bg-surface text-muted-foreground">
-                <PixelSprite name={r.sprite} size={18} />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm">{r.title}</p>
-                <p className="truncate text-xs text-muted-foreground">{r.subtitle}</p>
-              </div>
-              <div className="text-right">
-                <p className="font-mono text-xs font-medium tnum">{r.xp}</p>
-                <p className="font-mono text-[10px] text-muted-foreground">{r.time}</p>
-              </div>
-            </button>
-          ))}
-        </div>
+        {rewards.length === 0 ? (
+          <EmptyState
+            sprite="trophy"
+            title="No rewards yet"
+            description="Complete a quest to start earning XP and rewards."
+          />
+        ) : (
+          <div className="flex flex-col divide-y divide-border">
+            {rewards.slice(0, 5).map((r) => (
+              <button
+                key={r.id}
+                onClick={() => navigate('inventory')}
+                className="-mx-2 flex items-center gap-3 rounded-md px-2 py-3 text-left transition-colors duration-150 hover:bg-surface active:scale-[0.99]"
+              >
+                <div className="flex h-9 w-9 items-center justify-center rounded-md border border-border bg-surface text-muted-foreground">
+                  <PixelSprite name={r.sprite} size={18} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm">{r.title}</p>
+                  <p className="truncate text-xs text-muted-foreground">{r.subtitle}</p>
+                </div>
+                <div className="text-right">
+                  <p className="font-mono text-xs font-medium tnum">{r.xp}</p>
+                  <p className="font-mono text-[10px] text-muted-foreground">{r.time}</p>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
       </section>
+
+      <NotificationsSheet open={showNotifications} onClose={() => setShowNotifications(false)} />
     </div>
   )
 }
