@@ -82,10 +82,12 @@ function QuestDetail({ quest, onBack }: { quest: Quest; onBack: () => void }) {
   async function handleComplete() {
     setBusy(true)
     try {
-      const xp = await completeQuest(quest.id)
+      const { xp, keys, chests } = await completeQuest(quest.id)
       setXpBurst(true)
       setTimeout(() => setXpBurst(false), 1200)
-      toast({ title: 'Quest completed', description: `+${xp} XP earned`, variant: 'success' })
+      const loot = [`+${xp} XP`, `+${keys} Key${keys > 1 ? 's' : ''}`]
+      if (chests > 0) loot.push(`+${chests} Chest`)
+      toast({ title: 'Quest completed', description: loot.join(' · '), variant: 'success' })
     } finally {
       setBusy(false)
     }
@@ -131,11 +133,29 @@ function QuestDetail({ quest, onBack }: { quest: Quest; onBack: () => void }) {
       <div className="mt-4 flex flex-col gap-6">
         <div className="flex flex-col gap-2">
           <span className="text-xs text-muted-foreground">Reward</span>
-          <div className="flex items-center gap-3 rounded-lg border border-border bg-card p-4">
-            <div className="flex h-9 w-9 items-center justify-center rounded-md border border-border bg-surface">
-              <PixelSprite name="star" size={18} />
+          <div className="flex flex-col divide-y divide-border rounded-lg border border-border bg-card">
+            <div className="flex items-center gap-3 p-4">
+              <div className="flex h-9 w-9 items-center justify-center rounded-md border border-border bg-surface">
+                <PixelSprite name="star" size={18} />
+              </div>
+              <span className="font-mono text-sm font-medium tnum">+{quest.xpValue} XP</span>
             </div>
-            <span className="font-mono text-sm font-medium tnum">+{quest.xpValue} XP</span>
+            <div className="flex items-center gap-3 p-4">
+              <div className="flex h-9 w-9 items-center justify-center rounded-md border border-border bg-surface">
+                <PixelSprite name="key" size={18} />
+              </div>
+              <span className="font-mono text-sm font-medium tnum">
+                +{quest.xpValue >= 500 ? 2 : 1} Key{quest.xpValue >= 500 ? 's' : ''}
+              </span>
+            </div>
+            <div className="flex items-center gap-3 p-4">
+              <div className="flex h-9 w-9 items-center justify-center rounded-md border border-border bg-surface">
+                <PixelSprite name="chest" size={18} />
+              </div>
+              <span className="font-mono text-sm font-medium tnum text-muted-foreground">
+                Chance of a Chest
+              </span>
+            </div>
           </div>
         </div>
 

@@ -51,10 +51,15 @@
   }
   html {
     @apply bg-background;
+    /* Global overflow guard: never allow horizontal scroll from wide decorative elements */
+    overflow-x: hidden;
   }
   body {
     @apply bg-background text-foreground antialiased;
     -webkit-font-smoothing: antialiased;
+    /* Reinforce the guard and clamp to the viewport width */
+    overflow-x: hidden;
+    max-width: 100vw;
   }
 }
 
