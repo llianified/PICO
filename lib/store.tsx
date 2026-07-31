@@ -28,6 +28,7 @@ import {
   reconcileQuestAvailability,
   resetDailyQuests,
   toDayKey,
+  xpNeededForLevel,
   type Achievement,
   type Avatar,
   type InventoryItem,
@@ -383,7 +384,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           while (xp >= needed) {
             xp -= needed
             lvl += 1
-            needed = Math.round(needed * 1.15)
+            needed = xpNeededForLevel(lvl)
             leveledUp = true
             newLevel = lvl
           }
