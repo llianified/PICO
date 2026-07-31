@@ -40,6 +40,7 @@ export type RewardEvent = {
   items: { label: string; sprite: string }[]
 } | null
 export type AchievementEvent = { title: string; subtitle: string } | null
+export type QuestReward = { xp: number; keys: number; chests: number }
 
 export type TabId = 'home' | 'adventure' | 'inventory' | 'wallet' | 'profile'
 
@@ -105,7 +106,7 @@ type StoreValue = {
   withdraw: (amount: number, methodId: string) => Promise<void>
   connectPaymentMethod: (id: string) => Promise<void>
   startQuest: (id: string) => Promise<void>
-  completeQuest: (id: string) => Promise<number>
+  completeQuest: (id: string) => Promise<QuestReward>
   openChest: () => Promise<RewardEvent>
   updateProfile: (data: { name?: string; avatarId?: string }) => void
   setLanguage: (l: string) => void
@@ -270,15 +271,22 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const completeQuest = useCallback(
-    async (id: string): Promise<number> => {
+    async (id: string): Promise<QuestReward> => {
       await delay(1400)
       let earnedXp = 0
       let reward = 0
+      let keysEarned = 0
+      let chestsEarned = 0
       setQuests((prev) =>
         prev.map((q) => {
           if (q.id !== id) return q
           earnedXp = q.xpValue
           reward = Math.round(q.xpValue * 4)
+          // Bigger quests hand out more keys, and every quest has a chance
+          // to drop a treasure chest — higher-value quests drop more often.
+          keysEarned = q.xpValue >= 500 ? 2 : 1
+          const chestChance = q.xpValue >= 300 ? 0.5 : 0.25
+          chestsEarned = Math.random() < chestChance ? 1 : 0
           return {
             ...q,
             state: 'done',
@@ -287,6 +295,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         }),
       )
       if (earnedXp) addXp(earnedXp)
+      if (keysEarned) setKeys((k) => k + keysEarned)
+      if (chestsEarned) setChests((c) => c + chestsEarned)
       if (reward) {
         setBalance((prev) => prev + reward)
         setTotalEarned((prev) => prev + reward)
@@ -301,7 +311,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         setTransactions((prev) => [tx, ...prev])
       }
       unlockAchievementProgress('adventurer', 1)
-      return earnedXp
+      return { xp: earnedXp, keys: keysEarned, chests: chestsEarned }
     },
     [addXp, unlockAchievementProgress],
   )
