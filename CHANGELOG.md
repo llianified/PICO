@@ -24,6 +24,8 @@ merged remediation passes. Issue identifiers (`P0-1`, `P1-2`, …) refer to
   documentation-update requirement for every future fix.
 - Status summary tables at the top of `PICO_PRODUCTION_AUDIT.md` and
   `PICO_P1_REMEDIATION.md`, with cross-links to the remediation logs.
+- `PICO_P3_REMEDIATION.md` — P3 change log, created with the first two P3 fixes (P3-3,
+  P3-6). The band previously had no log, as anticipated by `CONTRIBUTING.md`.
 - Appendix to `PICO_PRODUCTION_AUDIT.md` recording documentation drift, obsolete premises,
   incidentally-closed findings, and one newly discovered tooling issue (the `lint` script
   references ESLint, which is not installed).
@@ -39,6 +41,9 @@ merged remediation passes. Issue identifiers (`P0-1`, `P1-2`, …) refer to
   the P0 pass and had remained listed as open; the original findings are retained.
 - Corrected the Phase 1 checklist in the audit, which still marked `P1-5` as open after it
   had been fixed on 2026-07-31.
+- P3-3 — `initialLoginDates` is now the literal `[]` instead of `makeConsecutiveDays(0)`, a
+  call whose only possible result was an empty array. Recorded as Changed rather than Fixed
+  because the seeded value is byte-for-byte identical; only the intent is now legible.
 
 ### Fixed
 
@@ -46,6 +51,17 @@ merged remediation passes. Issue identifiers (`P0-1`, `P1-2`, …) refer to
   formula. It now derives the value from the shared `questKeyReward()` helper and
   pluralizes "Key"/"Keys" from that value, so the preview cannot drift from what
   `applyQuestReward` actually grants. Reward values are unchanged.
+- P2-3 — The quest detail progress row no longer shows a half-filled bar next to a
+  "0 / 1" label. The bar percentage and the numeric label are both derived from one
+  `{ current, total }` value, so they can no longer disagree. Quests without a `progress`
+  object are treated as a single-step objective (`0 / 1` until done, `1 / 1` after)
+  instead of the previous magic 50% for the `active` state. Gameplay, rewards and the
+  existing bar transition are unchanged.
+- P3-6 — Removed the non-null assertion from the `AppShell` screen lookup
+  (`nav.find(...)!.Screen`), which would have thrown and taken down the React tree if `tab`
+  ever held a value absent from `nav`. The lookup now falls back to the Home screen. Because
+  `nav` is a non-empty `as const` tuple, the fallback needs no assertion of its own. All five
+  tabs still resolve to their own screens, so navigation is unchanged in the normal case.
 
 ### Removed
 

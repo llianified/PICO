@@ -3,7 +3,7 @@
 Checklist for every finding in [`PICO_PRODUCTION_AUDIT.md`](./PICO_PRODUCTION_AUDIT.md).
 Sequencing and rationale are in [`ROADMAP.md`](./ROADMAP.md).
 
-**9 of 35 fixed · 2 mitigated · 24 open.**
+**12 of 35 fixed · 2 mitigated · 21 open.**
 
 Legend: `[x]` fixed · `[~]` mitigated (risk reduced, root cause needs a backend) ·
 `[ ]` open.
@@ -56,13 +56,14 @@ Log: [`PICO_P1_REMEDIATION.md`](./PICO_P1_REMEDIATION.md) · 3 of 6 fixed.
 
 ## P2
 
-Log: [`PICO_P2_REMEDIATION.md`](./PICO_P2_REMEDIATION.md) · 3 of 12 fixed — P2-10 and P2-11
-incidentally during the P0 pass, P2-2 directly.
+Log: [`PICO_P2_REMEDIATION.md`](./PICO_P2_REMEDIATION.md) · 4 of 12 fixed — P2-10 and P2-11
+incidentally during the P0 pass, P2-2 and P2-3 directly.
 
 - [ ] **P2-1** — Quest reward preview omits coins that are actually granted
 - [x] **P2-2** — Key reward formula duplicated inline instead of using `questKeyReward()`
   - Quest detail preview now derives keys from `questKeyReward(quest.xpValue)`; reward values unchanged
-- [ ] **P2-3** — Progress bar shows 50% while the label reads "0 / 1"
+- [x] **P2-3** — Progress bar shows 50% while the label reads "0 / 1"
+  - Bar and label now derive from one `{ current, total }` value; quests without `progress` read `0 / 1` → `1 / 1`
 - [ ] **P2-4** — Chest opening bypasses the affordability check it appears to enforce
   - Do this *with* the server ledger, not before it
 - [ ] **P2-5** — Energy consumed even when the quest turns out to be uncompletable
@@ -81,17 +82,19 @@ incidentally during the P0 pass, P2-2 directly.
 
 ## P3
 
-0 of 12 fixed.
+Log: [`PICO_P3_REMEDIATION.md`](./PICO_P3_REMEDIATION.md) · 2 of 12 fixed — P3-3 and P3-6.
 
 - [ ] **P3-1** — Unused dependencies shipped
   - ⚠️ Largely obsolete: six of the seven named packages are no longer installed. Only
     `class-variance-authority` remains. Verify before acting.
 - [ ] **P3-2** — Dead code (unused imports, unreferenced `button`/`Skeleton`, unreachable `DEFAULT_SURVEY` fallback)
-- [ ] **P3-3** — `initialLoginDates = makeConsecutiveDays(0)` always returns `[]`
+- [x] **P3-3** — `initialLoginDates = makeConsecutiveDays(0)` always returns `[]`
+  - Now the literal `[]`; seeded value unchanged. `makeConsecutiveDays` is left unused — prune under P3-2
 - [ ] **P3-4** — Hardcoded "Good Evening" greeting
   - Must resolve after mount, or it reintroduces P0-1
 - [ ] **P3-5** — `unlockedAt: 'Just now'` frozen as a string
-- [ ] **P3-6** — Non-null assertion on nav lookup (`nav.find(...)!.Screen`)
+- [x] **P3-6** — Non-null assertion on nav lookup (`nav.find(...)!.Screen`)
+  - Falls back to `nav[0]` (home); the `as const` tuple makes the fallback assertion-free
 - [ ] **P3-7** — Redundant `onAction` / `onClick` prop aliases on `ActionButton`
 - [ ] **P3-8** — `CountUp` cleanup writes `fromRef.current = to` on interrupted animations
 - [ ] **P3-9** — No Content-Security-Policy

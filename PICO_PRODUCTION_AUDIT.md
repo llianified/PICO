@@ -24,9 +24,9 @@ Status as of 2026-08-01. Legend: ✅ Fixed · ⚠️ Mitigated (risk reduced, ro
 |---|---|---|---|---|---|
 | P0 — Critical | 5 | 3 | 2 | 0 | [`PICO_P0_REMEDIATION.md`](./PICO_P0_REMEDIATION.md) |
 | P1 — High | 6 | 3 | 0 | 3 | [`PICO_P1_REMEDIATION.md`](./PICO_P1_REMEDIATION.md) |
-| P2 — Medium | 12 | 3 | 0 | 9 | [`PICO_P2_REMEDIATION.md`](./PICO_P2_REMEDIATION.md) |
+| P2 — Medium | 12 | 4 | 0 | 8 | [`PICO_P2_REMEDIATION.md`](./PICO_P2_REMEDIATION.md) |
 | P3 — Low | 12 | 0 | 0 | 12 | — |
-| **Total** | **35** | **9** | **2** | **24** | |
+| **Total** | **35** | **10** | **2** | **23** | |
 
 | Issue | Title | Status | Detail |
 |---|---|---|---|
@@ -41,8 +41,9 @@ Status as of 2026-08-01. Legend: ✅ Fixed · ⚠️ Mitigated (risk reduced, ro
 | P1-4 | Weekly and Event tabs permanently empty | ⬜ Open | — |
 | P1-5 | `processAchievementQueue` type/value drift | ✅ Fixed | [log](./PICO_P1_REMEDIATION.md#p1-5--processachievementqueue-exported-through-context-but-absent-from-storevalue) |
 | P1-6 | Theme setting inert; locked to dark | ⬜ Open | — |
-| P2-1, P2-3 … P2-9, P2-12 | See [P2 — Medium](#p2--medium) | ⬜ Open | — |
+| P2-1, P2-4 … P2-9, P2-12 | See [P2 — Medium](#p2--medium) | ⬜ Open | — |
 | P2-2 | Key reward formula duplicated inline | ✅ Fixed | [log](./PICO_P2_REMEDIATION.md#p2-2--key-reward-formula-duplicated-inline-instead-of-using-the-shared-helper) |
+| P2-3 | Progress bar 50% vs "0 / 1" label | ✅ Fixed | [log](./PICO_P2_REMEDIATION.md#p2-3--progress-bar-shows-50-while-the-label-reads-0--1) |
 | P2-10 | Achievement counters can overrun the total | ✅ Fixed | Incidental — see [appendix](#appendix--documentation-drift-and-stale-findings) |
 | P2-11 | Two parallel "time ago" implementations | ✅ Fixed | Incidental — see [appendix](#appendix--documentation-drift-and-stale-findings) |
 | P3-1 … P3-12 | See [P3 — Low](#p3--low) | ⬜ Open | P3-1 partly obsolete — see [appendix](#appendix--documentation-drift-and-stale-findings) |
@@ -229,6 +230,8 @@ Everything below is real and worth fixing, but items P0-2 and P0-3 in particular
 - **Risk:** The two will diverge the first time the formula is tuned.
 
 ### P2-3 · Progress bar shows 50% while the label reads "0 / 1"
+
+> **Status — ✅ Fixed, 2026-08-01.** The quest detail screen now derives one `progress` value — `quest.progress ?? { current: quest.state === 'done' ? 1 : 0, total: 1 }` — and computes both the bar percentage and the numeric label from it, so the two cannot disagree. The magic `50` for the `active` state is gone: a quest without a `progress` object is a single-step objective, reading `0 / 1` with an empty bar until it is done and `1 / 1` with a full bar after. Verified in the browser at 384×639 across the no-`progress` quest in `todo`, `active` and `done` states, plus a multi-step quest at `1 / 3` where 5 of 16 segments fill — exactly `round(1/3 × 16)`. Gameplay, rewards and the existing segment transition are unchanged. The original finding is preserved below.
 
 - **Files:** `components/screens/adventure-screen.tsx:137-143`
 - **Root cause:** For quests without a `progress` object, `progressPct` falls back to a magic `50` for `active` state, while the adjacent label independently prints `0 / 1`.

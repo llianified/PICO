@@ -401,7 +401,7 @@ export function computeStreak(loginDates: string[]): number {
 }
 
 /** No prior login history → streak starts at 0 (today's login is recorded on mount). */
-export const initialLoginDates = makeConsecutiveDays(0)
+export const initialLoginDates: string[] = []
 
 /**
  * The activity feed is derived purely from real gameplay events via

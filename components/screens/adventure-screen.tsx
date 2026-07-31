@@ -131,13 +131,13 @@ function QuestDetail({ quest, onBack }: { quest: Quest; onBack: () => void }) {
   const hasSurvey = quest.state === 'active' && !!quest.survey?.length
   const surveyComplete = hasSurvey ? surveyQuestions.every((q) => answers[q.id]) : true
 
-  const progressPct = quest.progress
-    ? (quest.progress.current / quest.progress.total) * 100
-    : quest.state === 'done'
-      ? 100
-      : quest.state === 'active'
-        ? 50
-        : 0
+  // Single source of truth for the progress row: both the bar and the numeric label
+  // are derived from this one pair, so they can never disagree (P2-3). A quest with
+  // no `progress` object is a single-step objective — 0 / 1 until it is done, 1 / 1
+  // after — rather than the old magic 50% used for the `active` state.
+  const progress = quest.progress ?? { current: quest.state === 'done' ? 1 : 0, total: 1 }
+  const progressPct = progress.total > 0 ? (progress.current / progress.total) * 100 : 0
+  const progressLabel = `${progress.current} / ${progress.total}`
 
   async function handleStart() {
     if (!quest.available) {
@@ -278,7 +278,7 @@ function QuestDetail({ quest, onBack }: { quest: Quest; onBack: () => void }) {
           <div className="flex items-center justify-between">
             <span className="text-xs text-muted-foreground">Progress</span>
             <span className="font-mono text-xs text-muted-foreground tnum">
-              {quest.progress ? `${quest.progress.current} / ${quest.progress.total}` : quest.state === 'done' ? '1 / 1' : '0 / 1'}
+              {progressLabel}
             </span>
           </div>
           <SegmentedProgress value={progressPct} segments={16} />
