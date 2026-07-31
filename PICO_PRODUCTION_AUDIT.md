@@ -12,6 +12,8 @@
 
 > **Remediation update — 2026-07-31, branch `production-audit-remediation`.** All five P0 items have since been addressed on the front end. P0-1, P0-4 and P0-5 are fully closed. P0-2 and P0-3 are **mitigated, not closed** — they cannot be genuinely fixed without a backend, so the fraud and free-money paths were removed rather than the underlying architecture changed. Per-issue status is recorded inline below; the full change log is in [`PICO_P0_REMEDIATION.md`](./PICO_P0_REMEDIATION.md).
 
+> **Remediation update — P1 pass, in progress.** P1 items are being fixed individually rather than as one batch. Per-issue status is recorded inline below; the change log is in [`PICO_P1_REMEDIATION.md`](./PICO_P1_REMEDIATION.md).
+
 ---
 
 ## Table of contents
@@ -147,6 +149,7 @@ Everything below is real and worth fixing, but items P0-2 and P0-3 in particular
 
 ### P1-5 · `processAchievementQueue` is exported through context but absent from the `StoreValue` type
 
+- **Status:** ✅ **Fixed.** `processAchievementQueue` was removed from the context value object and from the `useMemo` dependency array in `lib/store.tsx`, so the exported value now matches `StoreValue` exactly. The function itself is unchanged and still used internally by `unlockAchievementProgress`; grep confirmed no consumer ever read it off the context, so behavior is identical. Separately, `typescript.ignoreBuildErrors` was removed from `next.config.mjs` — `tsc --noEmit` was already clean, so type errors now fail the build instead of shipping silently. Verified with `pnpm build` (TypeScript step runs and passes).
 - **Severity:** P1 (maintainability / type safety)
 - **Files:** `lib/store.tsx:74-162` (type), `768`, `829`
 - **Root cause:** The function is added to the context object and dependency array but never declared in the `StoreValue` type. It passes `tsc` only because the object is contextually typed rather than checked for excess properties through a fresh literal assignment — and `next.config.mjs` sets `typescript.ignoreBuildErrors: true`, removing the safety net entirely.
