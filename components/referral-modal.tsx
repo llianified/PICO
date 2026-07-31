@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Copy, Check, Share2 } from 'lucide-react'
 import { motion } from 'motion/react'
+import { useStore } from '@/lib/store'
 
 interface ReferralModalProps {
   isOpen: boolean
@@ -13,6 +14,7 @@ interface ReferralModalProps {
 }
 
 export function ReferralModal({ isOpen, referralCode, playerName, onInviteSent, onClose }: ReferralModalProps) {
+  const { toast } = useStore()
   const [copied, setCopied] = useState(false)
 
   const referralLink = `https://pico.game?ref=${referralCode}`
@@ -20,6 +22,7 @@ export function ReferralModal({ isOpen, referralCode, playerName, onInviteSent, 
   const handleCopy = () => {
     navigator.clipboard.writeText(referralLink)
     setCopied(true)
+    toast({ title: 'Copied to clipboard!', variant: 'success' })
     setTimeout(() => setCopied(false), 2000)
   }
 

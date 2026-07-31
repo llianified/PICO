@@ -67,7 +67,12 @@ export function InventoryScreen() {
     try {
       await openChest()
     } catch (err) {
-      toast({ title: 'Failed to open chest', description: 'Please try again.', variant: 'error' })
+      const error = err as Error
+      if (error.message === 'INVENTORY_FULL') {
+        toast({ title: 'Inventory full', description: 'Make room before opening more chests.', variant: 'error' })
+      } else {
+        toast({ title: 'Failed to open chest', description: 'Please try again.', variant: 'error' })
+      }
     } finally {
       setOpening(false)
     }

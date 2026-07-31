@@ -237,6 +237,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [collectionOwned, setCollectionOwned] = useState(12)
   const collectionTotal = 48
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>(initialInventoryItems)
+  const inventoryItemsRef = useRef(inventoryItems)
+  inventoryItemsRef.current = inventoryItems
   // Nothing equipped on a fresh start — the player has no items yet.
   const [equipped, setEquipped] = useState<Record<string, string>>({})
 
@@ -255,7 +257,26 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [achievementEvent, setAchievementEvent] = useState<AchievementEvent>(null)
 
   const toastId = useRef(0)
-  const achievementQueueRef = useRef<NodeJS.Timeout | null>(null)
+  const achievementQueueRef = useRef<{ title: string; subtitle: string }[]>([])
+  const achievementTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Process next achievement in queue
+  const processAchievementQueue = useCallback(() => {
+    if (achievementQueueRef.current.length === 0) {
+      achievementTimeoutRef.current = null
+      return
+    }
+    
+    const next = achievementQueueRef.current.shift()!
+    setBadges((b) => b + 1)
+    setAchievementEvent({ title: next.title, subtitle: next.subtitle })
+    
+    // Show for 2.5s then process next
+    achievementTimeoutRef.current = setTimeout(() => {
+      setAchievementEvent(null)
+      setTimeout(processAchievementQueue, 300)
+    }, 2500)
+  }, [])
 
   const toast = useCallback((t: Omit<Toast, 'id'>) => {
     const id = ++toastId.current
@@ -433,21 +454,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         const current = Math.min(a.total, a.current + amount)
         const unlocked = current >= a.total
         if (unlocked) {
-          // Clear any pending achievement notification and queue this one
-          if (achievementQueueRef.current) clearTimeout(achievementQueueRef.current)
-          achievementQueueRef.current = setTimeout(() => {
-            setBadges((b) => b + 1)
-            setAchievementEvent({ title: a.title, subtitle: 'Achievement unlocked' })
-            // Clear after showing so next achievement can display
-            setTimeout(() => {
-              setAchievementEvent(null)
-            }, 2500)
-          }, 500)
+          // Add to queue (or start processing if queue is empty)
+          const wasEmpty = achievementQueueRef.current.length === 0
+          achievementQueueRef.current.push({ title: a.title, subtitle: 'Achievement unlocked' })
+          if (wasEmpty && !achievementTimeoutRef.current) {
+            processAchievementQueue()
+          }
         }
         return { ...a, current, unlocked }
       }),
     )
-  }, [])
+  }, [processAchievementQueue])
 
   const withdraw = useCallback(
     async (amount: number, methodId: string) => {
@@ -600,6 +617,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const openChest = useCallback(async (): Promise<RewardEvent> => {
     await delay(1500)
+    
+    // Re-validate cap after async delay to prevent exceeding inventory limit
+    if (inventoryItemsRef.current.length >= INVENTORY_CAP) {
+      throw new Error('INVENTORY_FULL')
+    }
+    
     const coinReward = 500
     setChests((c) => Math.max(0, c - 1))
     setKeys((k) => Math.max(0, k - 1))
@@ -742,6 +765,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       clearReward,
       clearAchievement,
       claimAchievement,
+      processAchievementQueue,
       addXp,
       withdraw,
       connectPaymentMethod,
@@ -802,6 +826,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       clearReward,
       clearAchievement,
       claimAchievement,
+      processAchievementQueue,
       addXp,
       withdraw,
       connectPaymentMethod,

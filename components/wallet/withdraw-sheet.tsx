@@ -76,15 +76,15 @@ export function WithdrawSheet({ open, onClose }: { open: boolean; onClose: () =>
     }
   }
 
-  const title = step === 'success' ? undefined : step === 'confirm' ? 'Confirm Withdrawal' : 'Withdraw'
+  const title = step === 'success' ? undefined : step === 'confirm' ? submitting ? 'Processing withdrawal...' : 'Confirm Withdrawal' : 'Withdraw'
 
   return (
     <BottomSheet
       open={open}
       onClose={handleClose}
       title={title}
-      description={step === 'form' ? `Available balance ${formatRp(balance)}` : undefined}
-      dismissible={!submitting}
+      description={step === 'form' ? `Available balance ${formatRp(balance)}` : submitting ? 'Please wait while we process your withdrawal.' : undefined}
+      dismissible={true}
     >
       <AnimatePresence mode="wait">
         {step === 'form' && (
