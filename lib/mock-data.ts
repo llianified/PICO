@@ -15,6 +15,8 @@ export type Quest = {
   detail: string
   /** when false, opening/starting the quest surfaces an "unavailable" error */
   available?: boolean
+  /** minimum player level required before this quest auto-unlocks (Story quests) */
+  levelRequired?: number
 }
 
 export type TransactionType = 'earn' | 'withdraw'
@@ -133,6 +135,30 @@ export const initialQuests: Quest[] = [
     available: true,
   },
   {
+    id: 'awaken',
+    title: 'Awaken Your Powers',
+    subtitle: 'Begin your legend',
+    xpValue: 400,
+    tag: 'STORY',
+    category: 'Story',
+    state: 'todo',
+    detail: 'Your journey begins here. Complete this to prove your worth.',
+    available: true,
+    levelRequired: 1,
+  },
+  {
+    id: 'trials',
+    title: 'Trials of the Ancients',
+    subtitle: 'A test of skill',
+    xpValue: 900,
+    tag: 'STORY',
+    category: 'Story',
+    state: 'todo',
+    detail: 'Face the trials left behind by the ancients. Unlocks at level 3.',
+    available: false,
+    levelRequired: 3,
+  },
+  {
     id: 'boss',
     title: 'Defeat the Shadow Boss',
     subtitle: 'A legendary battle',
@@ -140,8 +166,9 @@ export const initialQuests: Quest[] = [
     tag: 'STORY',
     category: 'Story',
     state: 'todo',
-    detail: 'This story quest is still locked. Level up to unlock it.',
+    detail: 'The final confrontation. Reach level 5 to challenge the Shadow Boss.',
     available: false,
+    levelRequired: 5,
   },
 ]
 
@@ -210,6 +237,52 @@ export function questKeyReward(xp: number): number {
 
 export function questCoinReward(xp: number): number {
   return Math.max(50, Math.round(xp * 0.6))
+}
+
+// ---------------------------------------------------------------------------
+// Leveling curve — the XP required grows 15% each level (unchanged curve), but
+// the base is tuned so leveling is actually achievable from quest rewards.
+// A single day of daily quests grants ~950 XP, enough for an early level-up.
+// ---------------------------------------------------------------------------
+export const LEVEL_XP_BASE = 500
+export const LEVEL_XP_GROWTH = 1.15
+
+/** XP required to advance FROM the given level to the next one. */
+export function xpNeededForLevel(level: number): number {
+  return Math.round(LEVEL_XP_BASE * Math.pow(LEVEL_XP_GROWTH, level - 1))
+}
+
+/**
+ * Reconciles Story quest availability against the player's level. A Story quest
+ * unlocks automatically once the player reaches its `levelRequired`. Already
+ * completed quests are never re-locked. Returns the same array reference when
+ * nothing changed so callers can skip needless re-renders.
+ */
+export function reconcileQuestAvailability(quests: Quest[], level: number): Quest[] {
+  let changed = false
+  const next = quests.map((q) => {
+    if (q.levelRequired === undefined) return q
+    const shouldBeAvailable = level >= q.levelRequired
+    if (shouldBeAvailable && !q.available) {
+      changed = true
+      return { ...q, available: true }
+    }
+    return q
+  })
+  return changed ? next : quests
+}
+
+/**
+ * Resets the Daily quest set at the start of a new day: daily quests return to
+ * their initial (fresh) definitions while every other category — including
+ * completed Story quests — is preserved exactly as-is.
+ */
+export function resetDailyQuests(quests: Quest[]): Quest[] {
+  return quests.map((q) => {
+    if (q.category !== 'Daily') return q
+    const fresh = initialQuests.find((iq) => iq.id === q.id)
+    return fresh ? { ...fresh } : q
+  })
 }
 
 // ---------------------------------------------------------------------------
