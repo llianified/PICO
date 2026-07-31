@@ -93,7 +93,7 @@ export const initialQuests: Quest[] = [
     xpValue: 100,
     tag: 'DAILY',
     category: 'Daily',
-    state: 'done',
+    state: 'todo',
     detail: 'Return each day to keep your streak alive.',
     available: true,
   },
@@ -116,7 +116,7 @@ export const initialQuests: Quest[] = [
     tag: 'DAILY',
     category: 'Daily',
     state: 'todo',
-    progress: { current: 2, total: 3 },
+    progress: { current: 0, total: 3 },
     detail: 'Finish three quests today to earn a bonus reward.',
     available: true,
   },
@@ -145,11 +145,7 @@ export const initialQuests: Quest[] = [
   },
 ]
 
-export const initialTransactions: Transaction[] = [
-  { id: 't1', title: 'Daily Quest', amount: 2000, type: 'earn', time: '10m ago', status: 'completed' },
-  { id: 't2', title: 'Survey Reward', amount: 5000, type: 'earn', time: '1h ago', status: 'completed' },
-  { id: 't3', title: 'Withdrawal', amount: 50000, type: 'withdraw', time: 'Yesterday', status: 'completed' },
-]
+export const initialTransactions: Transaction[] = []
 
 export const initialPaymentMethods: PaymentMethod[] = [
   { id: 'dana', name: 'DANA', connected: true },
@@ -158,22 +154,12 @@ export const initialPaymentMethods: PaymentMethod[] = [
   { id: 'bank', name: 'Bank Transfer', connected: false },
 ]
 
-export const initialInventoryItems: InventoryItem[] = [
-  {
-    id: 'hat',
-    name: "Explorer's Hat",
-    sprite: 'shield',
-    rarity: 'Common',
-    slot: 'Head',
-    description: 'A trusty hat worn by every explorer on their first journey.',
-    unlockedAt: '2h ago',
-  },
-]
+export const initialInventoryItems: InventoryItem[] = []
 
 export const initialAchievements: Achievement[] = [
-  { id: 'first', title: 'First Steps', subtitle: 'Complete your first quest', current: 1, total: 1, unlocked: true, claimed: true },
-  { id: 'dedicated', title: 'Dedicated', subtitle: 'Complete 10 daily quests', current: 10, total: 10, unlocked: true, claimed: false },
-  { id: 'adventurer', title: 'Adventurer', subtitle: 'Complete 50 quests', current: 28, total: 50, unlocked: false },
+  { id: 'first', title: 'First Steps', subtitle: 'Complete your first quest', current: 0, total: 1, unlocked: false, claimed: false },
+  { id: 'dedicated', title: 'Dedicated', subtitle: 'Complete 10 daily quests', current: 0, total: 10, unlocked: false, claimed: false },
+  { id: 'adventurer', title: 'Adventurer', subtitle: 'Complete 50 quests', current: 0, total: 50, unlocked: false },
   { id: 'rich', title: 'Treasure Hunter', subtitle: 'Withdraw your first reward', current: 0, total: 1, unlocked: false },
 ]
 
@@ -271,37 +257,12 @@ export function computeStreak(loginDates: string[]): number {
   return streak
 }
 
-/** 12 consecutive login days ending today → an initial streak of 12. */
-export const initialLoginDates = makeConsecutiveDays(12)
+/** No prior login history → streak starts at 0 (today's login is recorded on mount). */
+export const initialLoginDates = makeConsecutiveDays(0)
 
 /**
  * Seed activity feed. These mirror the initial state (login quest done, First
  * Steps badge claimed, survey reward matching the first transactions) so the
  * feed is internally consistent from the very first render.
  */
-export const initialRewardsFeed: RewardFeedItem[] = [
-  {
-    id: 'rw-seed-1',
-    sprite: 'trophy',
-    title: 'Quest Completed',
-    subtitle: 'Login to PICO',
-    value: '+100 XP',
-    createdAt: Date.now() - 2 * 60 * 1000,
-  },
-  {
-    id: 'rw-seed-2',
-    sprite: 'shield',
-    title: 'Badge Claimed',
-    subtitle: 'First Steps',
-    value: '+1 Badge',
-    createdAt: Date.now() - 60 * 60 * 1000,
-  },
-  {
-    id: 'rw-seed-3',
-    sprite: 'coin',
-    title: 'Survey Reward',
-    subtitle: 'Daily Survey',
-    value: '+Rp5.000',
-    createdAt: Date.now() - 3 * 60 * 60 * 1000,
-  },
-]
+export const initialRewardsFeed: RewardFeedItem[] = []

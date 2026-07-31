@@ -22,22 +22,22 @@ export function ProfileScreen() {
     levelXpNeeded,
     badges,
     achievements,
-    quests,
     equippedItems,
+    questsCompletedTotal,
+    daysActive,
   } = useStore()
 
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [avatarOpen, setAvatarOpen] = useState(false)
   const [achievementsOpen, setAchievementsOpen] = useState(false)
 
-  const questsCompleted = 128 + quests.filter((q) => q.state === 'done').length
   const avatar = avatarSprite(avatarId)
   const isDefaultAvatar = avatarId === 'explorer'
   const xpPercent = Math.round((levelXp / levelXpNeeded) * 100)
 
   const stats = [
-    { label: 'Quests Completed', value: questsCompleted },
-    { label: 'Days Active', value: 18 },
+    { label: 'Quests Completed', value: questsCompletedTotal },
+    { label: 'Days Active', value: daysActive },
     { label: 'Badges', value: badges },
   ]
 
