@@ -161,9 +161,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const [name, setName] = useState('Explorer')
   const [avatarId, setAvatarId] = useState<string>('explorer')
-  const [level, setLevel] = useState(12)
-  const [totalXp, setTotalXp] = useState(142550)
-  const [levelXp, setLevelXp] = useState(70000)
+  const [level, setLevel] = useState(1)
+  const [totalXp, setTotalXp] = useState(0)
+  const [levelXp, setLevelXp] = useState(0)
   const [levelXpNeeded, setLevelXpNeeded] = useState(200000)
 
   // Streak is derived from a mocked login history, never hardcoded.
@@ -171,22 +171,20 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const streak = useMemo(() => computeStreak(loginDates), [loginDates])
 
   // Lifetime stats that back the profile screen.
-  const [questsCompletedTotal, setQuestsCompletedTotal] = useState(128)
-  const [daysActive, setDaysActive] = useState(18)
+  const [questsCompletedTotal, setQuestsCompletedTotal] = useState(0)
+  const [daysActive, setDaysActive] = useState(0)
 
   // Energy regenerates one point every ENERGY_REGEN_MS while below the cap.
   const energyMax = ENERGY_MAX
-  const [energy, setEnergy] = useState(24)
-  const [nextEnergyAt, setNextEnergyAt] = useState<number | null>(
-    () => Date.now() + ENERGY_REGEN_MS,
-  )
+  const [energy, setEnergy] = useState(ENERGY_MAX)
+  const [nextEnergyAt, setNextEnergyAt] = useState<number | null>(null)
   const energyRef = useRef(energy)
   energyRef.current = energy
   const nextEnergyAtRef = useRef(nextEnergyAt)
   nextEnergyAtRef.current = nextEnergyAt
 
-  const [balance, setBalance] = useState(84500)
-  const [totalEarned, setTotalEarned] = useState(1245000)
+  const [balance, setBalance] = useState(0)
+  const [totalEarned, setTotalEarned] = useState(0)
   const [transactions, setTransactions] = useState<Transaction[]>(initialTransactions)
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>(initialPaymentMethods)
 
@@ -196,16 +194,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const questsRef = useRef(quests)
   questsRef.current = quests
 
-  const [chests, setChests] = useState(3)
-  const [keys, setKeys] = useState(7)
-  const [coins, setCoins] = useState(12400)
-  const [artifacts, setArtifacts] = useState(11)
-  const [badges, setBadges] = useState(24)
-  const [collectionOwned, setCollectionOwned] = useState(15)
+  const [chests, setChests] = useState(0)
+  const [keys, setKeys] = useState(0)
+  const [coins, setCoins] = useState(0)
+  const [artifacts, setArtifacts] = useState(0)
+  const [badges, setBadges] = useState(0)
+  const [collectionOwned, setCollectionOwned] = useState(0)
   const collectionTotal = 48
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>(initialInventoryItems)
-  // Start with the default hat equipped so the equipped state is visible right away.
-  const [equipped, setEquipped] = useState<Record<string, string>>({ Head: 'hat' })
+  // Nothing equipped on a fresh start — the player has no items yet.
+  const [equipped, setEquipped] = useState<Record<string, string>>({})
 
   const [achievements, setAchievements] = useState<Achievement[]>(initialAchievements)
 
