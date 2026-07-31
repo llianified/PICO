@@ -52,10 +52,65 @@ function QuestRow({ quest, onOpen }: { quest: Quest; onOpen: () => void }) {
   )
 }
 
+function QuestSurvey({
+  survey,
+  answers,
+  onAnswer,
+}: {
+  survey: NonNullable<Quest['survey']>
+  answers: Record<string, string>
+  onAnswer: (questionId: string, option: string) => void
+}) {
+  return (
+    <div className="flex flex-col gap-2">
+      <span className="text-xs text-muted-foreground">Survey</span>
+      <div className="flex flex-col gap-4">
+        {survey.map((q, i) => (
+          <div key={q.id} className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4">
+            <p className="text-sm font-medium text-pretty">
+              <span className="text-muted-foreground">{i + 1}. </span>
+              {q.prompt}
+            </p>
+            <div className="flex flex-col gap-2">
+              {q.options.map((opt) => {
+                const selected = answers[q.id] === opt
+                return (
+                  <button
+                    key={opt}
+                    onClick={() => onAnswer(q.id, opt)}
+                    className={`flex items-center gap-2.5 rounded-md border px-3 py-2.5 text-left text-sm transition-colors duration-100 ${
+                      selected
+                        ? 'border-foreground bg-surface text-foreground'
+                        : 'border-border text-muted-foreground hover:border-ring'
+                    }`}
+                  >
+                    <span
+                      className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border ${
+                        selected ? 'border-foreground' : 'border-border'
+                      }`}
+                    >
+                      {selected && <span className="h-2 w-2 rounded-full bg-foreground" />}
+                    </span>
+                    {opt}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function QuestDetail({ quest, onBack }: { quest: Quest; onBack: () => void }) {
   const { startQuest, completeQuest, toast } = useStore()
   const [busy, setBusy] = useState(false)
   const [xpBurst, setXpBurst] = useState(false)
+  const [answers, setAnswers] = useState<Record<string, string>>({})
+
+  const hasSurvey = quest.state === 'active' && !!quest.survey?.length
+  const surveyComplete = !quest.survey?.length || quest.survey.every((q) => answers[q.id])
 
   const progressPct = quest.progress
     ? (quest.progress.current / quest.progress.total) * 100
@@ -168,6 +223,14 @@ function QuestDetail({ quest, onBack }: { quest: Quest; onBack: () => void }) {
           </div>
           <SegmentedProgress value={progressPct} segments={16} />
         </div>
+
+        {hasSurvey && quest.survey && (
+          <QuestSurvey
+            survey={quest.survey}
+            answers={answers}
+            onAnswer={(qid, opt) => setAnswers((prev) => ({ ...prev, [qid]: opt }))}
+          />
+        )}
       </div>
 
       <div aria-hidden className="mt-auto min-h-8" />
@@ -180,14 +243,16 @@ function QuestDetail({ quest, onBack }: { quest: Quest; onBack: () => void }) {
       ) : quest.state === 'active' ? (
         <button
           onClick={handleComplete}
-          disabled={busy}
+          disabled={busy || !surveyComplete}
           aria-busy={busy}
-          className="group flex items-center justify-center gap-1.5 rounded-lg bg-primary px-5 py-4 text-[15px] font-medium text-primary-foreground transition-all duration-100 active:scale-[0.99] disabled:opacity-60"
+          className="group flex items-center justify-center gap-1.5 rounded-lg bg-primary px-5 py-4 text-[15px] font-medium text-primary-foreground transition-all duration-100 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
         >
           {busy ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" /> Completing…
             </>
+          ) : !surveyComplete ? (
+            'Answer all questions'
           ) : (
             <>
               Complete Quest

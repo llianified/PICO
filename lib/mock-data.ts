@@ -3,6 +3,13 @@ import type { SpriteName } from '@/components/pixel-sprite'
 export type QuestTag = 'SIDE' | 'DAILY' | 'WEEKLY' | 'EVENT' | 'STORY'
 export type QuestState = 'todo' | 'active' | 'done' | 'video'
 
+/** A single multiple-choice question shown once a survey/task quest is started. */
+export type SurveyQuestion = {
+  id: string
+  prompt: string
+  options: string[]
+}
+
 export type Quest = {
   id: string
   title: string
@@ -17,6 +24,8 @@ export type Quest = {
   available?: boolean
   /** minimum player level required before this quest auto-unlocks (Story quests) */
   levelRequired?: number
+  /** the task shown after starting the quest — answer all to complete it */
+  survey?: SurveyQuestion[]
 }
 
 export type TransactionType = 'earn' | 'withdraw'
@@ -87,6 +96,23 @@ export const initialQuests: Quest[] = [
     state: 'todo',
     detail: 'Help the villagers by sharing your opinion.',
     available: true,
+    survey: [
+      {
+        id: 'q1',
+        prompt: 'How often do you play PICO?',
+        options: ['Every day', 'A few times a week', 'Once a week', 'Rarely'],
+      },
+      {
+        id: 'q2',
+        prompt: 'Which reward excites you the most?',
+        options: ['XP & levels', 'Coins to withdraw', 'Chests & artifacts', 'Streak bonuses'],
+      },
+      {
+        id: 'q3',
+        prompt: 'How would you rate your adventure so far?',
+        options: ['Loving it', 'Pretty good', 'It is okay', 'Could be better'],
+      },
+    ],
   },
   {
     id: 'login',
