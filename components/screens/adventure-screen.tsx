@@ -8,7 +8,7 @@ import { PixelSprite } from '@/components/pixel-sprite'
 import { BottomSheet } from '@/components/ui/sheet'
 import { ReferralModal } from '@/components/referral-modal'
 import { useStore } from '@/lib/store'
-import { DEFAULT_SURVEY, formatRp, questKeyReward, questMoneyReward, type Quest } from '@/lib/mock-data'
+import { formatRp, questKeyReward, questMoneyReward, type Quest } from '@/lib/mock-data'
 
 const tabs = ['Story', 'Daily', 'Weekly', 'Event', 'Side'] as const
 
@@ -127,7 +127,9 @@ function QuestDetail({ quest, onBack }: { quest: Quest; onBack: () => void }) {
     }
   }, [quest.id, quest.state, quest.progress, hasAutoStarted, startQuest])
 
-  const surveyQuestions = quest.survey?.length ? quest.survey : DEFAULT_SURVEY
+  // Only ever read when `hasSurvey` is true, which already requires a non-empty
+  // `quest.survey`, so the `[]` here is just type narrowing and never renders.
+  const surveyQuestions = quest.survey ?? []
   const hasSurvey = quest.state === 'active' && !!quest.survey?.length
   const surveyComplete = hasSurvey ? surveyQuestions.every((q) => answers[q.id]) : true
 

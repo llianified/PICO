@@ -10,20 +10,6 @@ export type SurveyQuestion = {
   options: string[]
 }
 
-/** Fallback task shown for any started quest that doesn't define its own survey. */
-export const DEFAULT_SURVEY: SurveyQuestion[] = [
-  {
-    id: 'q1',
-    prompt: 'How are you feeling about this quest?',
-    options: ['Excited', 'Curious', 'Neutral', 'Not sure yet'],
-  },
-  {
-    id: 'q2',
-    prompt: 'How much time can you spend on it today?',
-    options: ['A few minutes', 'Around 30 minutes', 'An hour or more', 'As long as it takes'],
-  },
-]
-
 export type Quest = {
   id: string
   title: string
@@ -362,18 +348,6 @@ export function resetDailyQuests(quests: Quest[]): Quest[] {
 // ---------------------------------------------------------------------------
 export function toDayKey(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
-
-/** Builds `count` consecutive day keys ending today (most recent first). */
-export function makeConsecutiveDays(count: number): string[] {
-  const days: string[] = []
-  const base = new Date()
-  for (let i = 0; i < count; i++) {
-    const d = new Date(base)
-    d.setDate(base.getDate() - i)
-    days.push(toDayKey(d))
-  }
-  return days
 }
 
 /**
