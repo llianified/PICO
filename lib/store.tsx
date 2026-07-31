@@ -537,15 +537,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (energyRef.current < ENERGY_COST) {
         throw new Error('NO_ENERGY')
       }
+      // Lock energy immediately to prevent race condition during async delay
+      consumeEnergy(ENERGY_COST)
       await delay(1400)
       const snapshot = questsRef.current
       const target = snapshot.find((q) => q.id === id)
       if (!target || target.state === 'done') {
         return { xp: 0, keys: 0, chests: 0, coins: 0 }
       }
-
-      // Spend energy for the completed objective.
-      consumeEnergy(ENERGY_COST)
       setQuestsCompletedTotal((n) => n + 1)
 
       const primary = rollQuestReward(target.xpValue)
@@ -676,6 +675,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (data.avatarId !== undefined) setAvatarId(data.avatarId)
   }, [])
 
+  const setLanguageHandler = useCallback((l: string) => setLanguage(l), [])
+  const setThemeHandler = useCallback((t: string) => setTheme(t), [])
+
   const toggleNotifications = useCallback(() => setNotificationsEnabled((v) => !v), [])
   const toggleSound = useCallback(() => setSoundEnabled((v) => !v), [])
 
@@ -751,8 +753,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       buyKey,
       buyChest,
       updateProfile,
-      setLanguage,
-      setTheme,
+      setLanguage: setLanguageHandler,
+      setTheme: setThemeHandler,
       toggleNotifications,
       toggleSound,
     }),
@@ -811,6 +813,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       buyKey,
       buyChest,
       updateProfile,
+      setLanguageHandler,
+      setThemeHandler,
       toggleNotifications,
       toggleSound,
     ],
