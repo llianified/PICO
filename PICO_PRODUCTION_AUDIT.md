@@ -16,8 +16,43 @@
 
 ---
 
+## Status summary
+
+Status as of 2026-08-01. Legend: ✅ Fixed · ⚠️ Mitigated (risk reduced, root cause requires a backend) · ⬜ Open.
+
+| Priority | Total | ✅ Fixed | ⚠️ Mitigated | ⬜ Open | Remediation log |
+|---|---|---|---|---|---|
+| P0 — Critical | 5 | 3 | 2 | 0 | [`PICO_P0_REMEDIATION.md`](./PICO_P0_REMEDIATION.md) |
+| P1 — High | 6 | 3 | 0 | 3 | [`PICO_P1_REMEDIATION.md`](./PICO_P1_REMEDIATION.md) |
+| P2 — Medium | 12 | 2 | 0 | 10 | — |
+| P3 — Low | 12 | 0 | 0 | 12 | — |
+| **Total** | **35** | **8** | **2** | **25** | |
+
+| Issue | Title | Status | Detail |
+|---|---|---|---|
+| P0-1 | Hydration failure crashes the React tree | ✅ Fixed | [log](./PICO_P0_REMEDIATION.md#p0-1--hydration-failure-crashes-the-react-tree-on-every-page-load) |
+| P0-2 | Sponsor video pays out without showing a video | ⚠️ Mitigated | [log](./PICO_P0_REMEDIATION.md#p0-2--watch-sponsor-video-pays-out-without-ever-showing-a-video) |
+| P0-3 | Withdrawals have no server authority | ⚠️ Mitigated | [log](./PICO_P0_REMEDIATION.md#p0-3--withdrawals-mutate-balance-client-side-with-no-server-authority-or-idempotency) |
+| P0-4 | Seeded rewards feed fabricates rewards | ✅ Fixed | [log](./PICO_P0_REMEDIATION.md#p0-4--seeded-recent-rewards-feed-fabricates-rewards-the-player-never-earned) |
+| P0-5 | Seeded counters contradict empty inventory | ✅ Fixed | [log](./PICO_P0_REMEDIATION.md#p0-5--seeded-inventorycollection-counters-contradict-the-empty-inventory) |
+| P1-1 | Withdraw sheet dead-ends without a method | ✅ Fixed | [log](./PICO_P1_REMEDIATION.md#p1-1--withdraw-sheet-dead-ends-when-no-payment-method-is-connected) |
+| P1-2 | "Max" produces an invalid amount | ✅ Fixed | [log](./PICO_P1_REMEDIATION.md#p1-2--max-button-produces-a-guaranteed-invalid-amount-below-the-minimum) |
+| P1-3 | Only the last level-up is announced | ⬜ Open | — |
+| P1-4 | Weekly and Event tabs permanently empty | ⬜ Open | — |
+| P1-5 | `processAchievementQueue` type/value drift | ✅ Fixed | [log](./PICO_P1_REMEDIATION.md#p1-5--processachievementqueue-exported-through-context-but-absent-from-storevalue) |
+| P1-6 | Theme setting inert; locked to dark | ⬜ Open | — |
+| P2-1 … P2-9, P2-12 | See [P2 — Medium](#p2--medium) | ⬜ Open | — |
+| P2-10 | Achievement counters can overrun the total | ✅ Fixed | Incidental — see [appendix](#appendix--documentation-drift-and-stale-findings) |
+| P2-11 | Two parallel "time ago" implementations | ✅ Fixed | Incidental — see [appendix](#appendix--documentation-drift-and-stale-findings) |
+| P3-1 … P3-12 | See [P3 — Low](#p3--low) | ⬜ Open | P3-1 partly obsolete — see [appendix](#appendix--documentation-drift-and-stale-findings) |
+
+Progress is tracked as a checklist in [`TASKS.md`](./TASKS.md) and sequenced in [`ROADMAP.md`](./ROADMAP.md).
+
+---
+
 ## Table of contents
 
+- [Status summary](#status-summary)
 - [Architectural reality check](#architectural-reality-check)
 - [P0 — Critical](#p0--critical)
 - [P1 — High](#p1--high)
@@ -28,6 +63,7 @@
 - [1. Overall production readiness score](#1-overall-production-readiness-score)
 - [2. Estimated effort to fix](#2-estimated-effort-to-fix)
 - [3. Suggested order of implementation](#3-suggested-order-of-implementation)
+- [Appendix — documentation drift and stale findings](#appendix--documentation-drift-and-stale-findings)
 
 ---
 
@@ -242,6 +278,7 @@ Everything below is real and worth fixing, but items P0-2 and P0-3 in particular
 
 ### P2-10 · Achievement counters can display a claim state that overruns the total
 
+- **Status:** ✅ **Fixed incidentally by the P0-5 remediation (2026-07-31).** `badges` is now `useMemo(() => achievements.filter((a) => a.claimed).length, [achievements])` — exactly the fix recommended below — and no `setBadges` call remains anywhere, so the double-increment path is gone. Verified against the current `lib/store.tsx`. The original finding is retained below for history.
 - **Files:** `components/screens/profile-screen.tsx:180-186`, `lib/store.tsx:397-414`
 - **Root cause:** `claimAchievement` increments `badges` and `unlockAchievementProgress` *also* increments `badges` on unlock, so a single achievement can award two badges. `badges` is never derived from `achievements`.
 - **Recommended fix:** Derive `badges` from `achievements.filter(a => a.claimed).length`.
@@ -249,6 +286,7 @@ Everything below is real and worth fixing, but items P0-2 and P0-3 in particular
 
 ### P2-11 · Two parallel "time ago" implementations, one unused
 
+- **Status:** ✅ **Fixed incidentally by the P0-1 remediation (2026-07-31).** `home-screen.tsx` now imports `formatRelativeTime` from `lib/mock-data.ts` and `TimeAgoDisplay` calls it (`setDisplay(formatRelativeTime(ts))`) instead of reimplementing the logic — exactly the fix recommended below. The casing divergence is therefore also resolved. The original finding is retained below for history.
 - **Files:** `lib/mock-data.ts:258-269` (`formatRelativeTime`, **never imported**) vs `components/screens/home-screen.tsx:12-47` (`TimeAgoDisplay`, reimplements the same logic inline)
 - **Recommended fix:** Have `TimeAgoDisplay` call `formatRelativeTime`.
 - **Risk:** Divergent labels ("just now" vs "Just now" — they already differ in casing).
@@ -367,7 +405,7 @@ Choose the backend and whether real money is in scope. Every P0 either depends o
 
 1. ✅ **P0-1** hydration (`Date.now()` out of module scope) — unblocks clean dev/QA and removes the click-blocking overlay
 2. ✅ **P0-4 + P0-5** seed-data consistency — empty feed, derived counters
-3. ⬜ **P1-5** disable `ignoreBuildErrors` and fix what surfaces — do this early so later phases are type-checked *(still open)*
+3. ✅ **P1-5** disable `ignoreBuildErrors` and fix what surfaces — do this early so later phases are type-checked *(done 2026-07-31; `tsc --noEmit` was already clean, so nothing further surfaced)*
 4. ✅ **P0-2** *hide* the sponsor-video quest as an immediate stopgap against ad fraud
 5. ✅ **P0-3 (partial)** withdrawal validation moved into the store with an in-flight guard and idempotency keys — closes the client-side mint/double-spend paths ahead of the real ledger
 
@@ -406,3 +444,39 @@ Choose the backend and whether real money is in scope. Every P0 either depends o
 ---
 
 **Rationale for the ordering:** Phase 1 is deliberately front-loaded with cheap, high-impact fixes that make the app testable and stop the most embarrassing data contradictions — and it disables `ignoreBuildErrors` before the large Phase 2 changes land, so the compiler helps rather than hides. Phase 2 is sequenced before the remaining loop repairs because fixing withdraw-flow UX (P1-1/-2) or moving economy guards (P2-4/-5) against client-only state means writing that code twice.
+
+---
+
+## Appendix — documentation drift and stale findings
+
+Added 2026-08-01 during a documentation audit. **No finding above was deleted or renumbered.** This appendix records where the original 2026-07-31 audit text no longer matches the repository, so readers do not act on stale premises. Every row was verified against the current working tree.
+
+### Environment facts that have since changed
+
+| Audit statement | Current reality |
+|---|---|
+| "Next.js 15.2.4" (scope line) | **`next@16.2.6`**. The app has been upgraded a major version since the audit. |
+| "25 source files / ~4,700 LOC" | **27 files / ~5,014 LOC** across `app/`, `components/`, `lib/`. |
+| "`lib/store.tsx`, 859 LOC" | **968 LOC.** |
+| "`typescript.ignoreBuildErrors: true`" (P1-5) | **Removed** from `next.config.mjs`; build-time checking is active. |
+
+### Findings whose premise is now obsolete
+
+- **P3-1 (unused dependencies) — mostly obsolete.** Of the seven packages listed, six are **no longer in `package.json` at all**: `@supabase/ssr`, `@supabase/supabase-js`, `sonner`, `@radix-ui/react-progress`, `@radix-ui/react-tabs`, `@radix-ui/react-slot`. Only `class-variance-authority` remains installed. The dependency list has since gained `@base-ui/react`, `shadcn` and `@vercel/analytics`. The finding survives only as "audit `class-variance-authority` usage".
+- **The architectural reality check's Supabase note is stale.** It states `@supabase/ssr` and `@supabase/supabase-js` "are installed but never imported anywhere." They are no longer installed. The substantive point is unaffected and remains true: **there is still no backend, no auth and no persistence.**
+- **P2-7's recommended fix is no longer available as written.** It advises rebuilding the dialogs on `@radix-ui/react-dialog` because it "**is already a dependency** and is unused." That package is no longer installed; `@base-ui/react` is present instead. **The underlying defect is still real and still open** — `components/ui/modal.tsx`, `components/ui/sheet.tsx` and `components/referral-modal.tsx` remain hand-rolled with no focus trapping or restoration. Only the suggested vehicle for the fix needs revisiting.
+
+### Findings closed as a side effect of other work
+
+Both were verified fixed in the current code and are marked inline above:
+
+- **P2-10** — closed by the P0-5 remediation, which derived `badges` from `achievements`.
+- **P2-11** — closed by the P0-1 remediation, which rewrote `TimeAgoDisplay` to call the shared `formatRelativeTime`.
+
+### Findings re-confirmed as still valid
+
+Spot-checked against the current tree and unchanged: **P1-3** (single `setLevelUp` per payout), **P1-4** (`tabs` still advertises five categories; `questCatalogue` still contains only `Daily`, `Side` and `Story`), **P1-6** (`app/globals.css:31` still hardcodes `color-scheme: dark` and `app/layout.tsx` still sets `colorScheme: 'dark'`), **P2-12** (per-row `setInterval(update, 60000)` in the feed), **P3-3** (`initialLoginDates = makeConsecutiveDays(0)`), **P3-5** (`unlockedAt: 'Just now'`), **P3-9** (no CSP in `next.config.mjs`), **P3-10** (`maximumScale: 1` / `userScalable: false`).
+
+### New issue discovered during the documentation audit
+
+- **Broken `lint` script.** `package.json` defines `"lint": "eslint ."`, but **ESLint is not in `devDependencies`**, so `pnpm lint` fails. This was not in the original audit because the audit's verification method used `tsc --noEmit` only. Not assigned a P-number here to keep the audit's numbering stable; tracked in [`TASKS.md`](./TASKS.md) under Tooling.
