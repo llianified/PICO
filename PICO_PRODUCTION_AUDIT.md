@@ -1,0 +1,393 @@
+# PICO — Production Readiness Audit
+
+**Repository:** `llianified/pico`
+**Branch audited:** `main`
+**Date:** 2026-07-31
+
+**Scope:** 25 source files / ~4,700 LOC. Next.js 15.2.4, React 19, Tailwind v4, `motion` v12, single-page tab shell, all state in one React Context (`lib/store.tsx`, 859 LOC).
+
+**Verification method:** static review + `tsc --noEmit` (passes clean) + live browser walkthrough of quest → reward → wallet → withdraw → inventory flows at 384×639.
+
+> No files were modified during this audit. This document is the only artifact added.
+
+---
+
+## Table of contents
+
+- [Architectural reality check](#architectural-reality-check)
+- [P0 — Critical](#p0--critical)
+- [P1 — High](#p1--high)
+- [P2 — Medium](#p2--medium)
+- [P3 — Low](#p3--low)
+- [Telegram Mini App compatibility](#telegram-mini-app-compatibility)
+- [Responsiveness & accessibility summary](#responsiveness--accessibility-summary)
+- [1. Overall production readiness score](#1-overall-production-readiness-score)
+- [2. Estimated effort to fix](#2-estimated-effort-to-fix)
+- [3. Suggested order of implementation](#3-suggested-order-of-implementation)
+
+---
+
+## Architectural reality check
+
+Before the issue list, the single most important finding:
+
+> **This is a front-end prototype, not a production app.** There is no backend, no auth, no persistence, and no server-side validation. `lib/mock-data.ts` is the only data source; all economy state lives in `useState` inside one provider. `@supabase/ssr` and `@supabase/supabase-js` are installed but **never imported anywhere**.
+
+Consequences that make "production readiness" partly a category question rather than a bug list:
+
+- **All progress is lost on refresh.** No `localStorage`, no DB. Every reload resets XP, balance, level, and inventory to the seed values. Verified: reloading returned the account to Level 1 / 0 XP.
+- **The wallet pays out real Rupiah with zero server authority.** `withdraw()` is `await delay(1600)` then `setBalance(prev => prev - amount)`. Any user can edit client state and "withdraw" arbitrary amounts.
+
+Everything below is real and worth fixing, but items P0-2 and P0-3 in particular cannot be genuinely fixed without a backend.
+
+---
+
+## P0 — Critical
+
+### P0-1 · Hydration failure crashes the React tree on every page load
+
+- **Severity:** P0
+- **Files:** `lib/mock-data.ts:398,406,414` (`initialRewardsFeed`), `components/screens/home-screen.tsx:120`
+- **Root cause:** `initialRewardsFeed` calls `Date.now()` at **module scope**. The server evaluates it at request time and the client re-evaluates it at hydration time, producing different `createdAt` values. `TimeAgoDisplay` renders those into text, so server HTML and client HTML disagree.
+- **Current behavior:** Verified live — Next.js reports `Recoverable Error: Hydration failed because the server rendered text didn't match the client`. React discards the server tree and re-renders the whole app on the client. A `nextjs-portal` error overlay covers the bottom-left UI in development and intercepts clicks on the nav bar.
+- **Expected behavior:** No hydration mismatch; server and client markup identical.
+- **Recommended fix:** Never derive timestamps at module scope. Either store fixed relative offsets and resolve them to absolute times inside a `useEffect` after mount, or render the time-ago label only after mount (`const [mounted, setMounted] = useState(false)`). The same applies to the hardcoded `"Good Evening,"` greeting (`home-screen.tsx:120`) if it is ever made time-based.
+- **Risk if unfixed:** Full client re-render on every load (measurable TTI cost), dev overlay blocking interaction, and this class of bug escalates to blank screens in production when the mismatch lands inside a Suspense boundary.
+
+### P0-2 · "Watch Sponsor Video" pays out without ever showing a video
+
+- **Severity:** P0
+- **Files:** `components/screens/adventure-screen.tsx:330-352`, `lib/mock-data.ts:137-147`
+- **Root cause:** `state: 'video'` only changes the button *label* to "Watch Video". `handleStart` calls the same `startQuest()` as any other quest; there is no player, no ad SDK, no completion callback, no watch-duration gate.
+- **Current behavior:** Verified live — tapping "Watch Video" flips the quest to `active` and immediately renders "Complete Quest". Tapping that grants +Rp200, +50 XP, +1 Key. No video is ever displayed.
+- **Expected behavior:** Reward is granted only after a verified full view, confirmed by the ad provider's completion callback.
+- **Recommended fix:** Integrate a real rewarded-video provider and gate `completeQuest` on its server-verified completion signal. Until then this quest should be hidden rather than shipped.
+- **Risk if unfixed:** This is **advertising fraud** if any sponsor is billed for these "views," and it is free money for users. Also breaks sponsor contracts and app-store ad-network policies.
+
+### P0-3 · Withdrawals mutate balance client-side with no server authority or idempotency
+
+- **Severity:** P0
+- **Files:** `lib/store.tsx:469-486`, `components/wallet/withdraw-sheet.tsx:52-76`
+- **Root cause:** `withdraw()` performs no server call. It resolves a fake delay, then subtracts from local state. All validation (`MIN_WITHDRAW`, balance check) lives in the client component and is trivially bypassed. There is no idempotency key, so a retry double-spends.
+- **Current behavior:** Balance decrements locally and a "completed" transaction is appended. Nothing is persisted; a refresh restores the spent balance.
+- **Expected behavior:** Client posts an intent; the server re-derives the balance from its own ledger, validates minimum/sufficiency, enforces an idempotency key, and returns the authoritative new balance.
+- **Recommended fix:** Move the ledger server-side and make `withdraw` a mutation against it. Treat the client value as display-only. Never trust a client-supplied amount.
+- **Risk if unfixed:** Direct financial loss. A user can mint balance by editing memory and repeatedly cash out; a network retry can pay twice.
+
+### P0-4 · Seeded "Recent Rewards" feed fabricates rewards the player never earned
+
+- **Severity:** P0 (data integrity / trust)
+- **Files:** `lib/mock-data.ts:391-415`, consumed at `components/screens/home-screen.tsx:196-224`
+- **Root cause:** `initialRewardsFeed` ships three hardcoded fake entries, contradicting the genuinely-empty `initialTransactions`, `initialInventoryItems`, and zeroed XP.
+- **Current behavior:** Verified live on a fresh account — Home shows Level 1, **0 XP**, and a feed claiming *"Quest Completed +150 XP"*, *"Chest Opened — Legendary Sword"*, and *"Money Earned +5,000 Rp"*. The Wallet simultaneously and correctly shows `Rp200` / one transaction. The two screens directly contradict each other.
+- **Expected behavior:** The feed is derived purely from real events; a new account shows an empty state.
+- **Recommended fix:** Set `initialRewardsFeed = []` and add an empty state to the Home feed section (the pattern already exists in `EmptyTransactions`/`EmptyInventory`).
+- **Risk if unfixed:** Users see rewards they didn't get and money that isn't in their wallet — a direct trust and support-ticket problem, and arguably deceptive for a real-money app.
+
+### P0-5 · Seeded inventory/collection counters contradict the empty inventory
+
+- **Severity:** P0 (data integrity)
+- **Files:** `lib/store.tsx:232-239`
+- **Root cause:** Hardcoded starting state `chests=2, keys=1, coins=5000, artifacts=1, badges=1, collectionOwned=12` while `initialInventoryItems = []` and `initialAchievements` are all unclaimed.
+- **Current behavior:** Verified live — Inventory reads *"Collection Progress 25%"*, *"Collections 12 / 48"*, *"Artifacts 1"*, *"Badges 1"* directly above *"Nothing unlocked yet — Open a chest to discover your first item."* `badges=1` also contradicts zero claimed achievements.
+- **Expected behavior:** Counters derive from actual owned items; a new account starts consistent (whether at zero or at a deliberate, coherent starter grant).
+- **Recommended fix:** Derive `artifacts`/`badges`/`collectionOwned` from `inventoryItems` and `achievements` rather than storing them independently. If a starter grant is intended, seed the corresponding items so the numbers agree.
+- **Risk if unfixed:** The inventory economy is visibly incoherent, and `collectionOwned` can drift from reality indefinitely since nothing reconciles them.
+
+---
+
+## P1 — High
+
+### P1-1 · Withdraw sheet dead-ends when no payment method is connected
+
+- **Severity:** P1
+- **Files:** `components/wallet/withdraw-sheet.tsx:160-168`
+- **Root cause:** The empty branch renders static text *"Connect a payment method first."* with a decorative `Plus` icon that is **not a button** and has no handler. The connect flow only exists on the Wallet screen behind "Manage".
+- **Current behavior:** Verified live — with zero methods connected (the default; all four ship `connected: false`), the withdraw sheet shows an unactionable message and a permanently disabled Continue. The user must guess to close the sheet and find "Manage".
+- **Expected behavior:** The empty state offers an inline "Connect a payment method" action, or deep-links to the manage sheet.
+- **Recommended fix:** Make the empty state a real button that opens the manage sheet (or inlines `connectPaymentMethod`).
+- **Risk if unfixed:** The primary monetization flow — cashing out — is blocked for every new user at first attempt.
+
+### P1-2 · "Max" button produces a guaranteed-invalid amount below the minimum
+
+- **Severity:** P1
+- **Files:** `components/wallet/withdraw-sheet.tsx:139-147`
+- **Root cause:** Unlike the `QUICK` presets (which carry `disabled={q > balance}`), "Max" has no disabled condition and blindly sets `amount = balance`. When `balance < MIN_WITHDRAW` this is always invalid.
+- **Current behavior:** Verified live at `Rp200` balance — tapping "Max" fills `200` and immediately shows the error *"Minimum withdrawal is Rp10.000."* The control's only effect is to create an error.
+- **Expected behavior:** "Max" is disabled when `balance < MIN_WITHDRAW`, ideally with a hint about how much more is needed.
+- **Recommended fix:** Add `disabled={balance < MIN_WITHDRAW}` and surface a "Rp9.800 more to withdraw" affordance.
+- **Risk if unfixed:** Users below the threshold — i.e. all new users — hit a confusing self-inflicted error on the money screen.
+
+### P1-3 · Only the last level-up is announced when several happen at once
+
+- **Severity:** P1
+- **Files:** `lib/store.tsx:416-448`
+- **Root cause:** The `while (xp >= needed)` loop overwrites `newLevel` each iteration and fires a single `setLevelUp({ level: newLevel })`. Additionally, `completeQuest` calls `applyQuestReward` **twice** in the same tick when the "Complete 3 Quests" bonus fires (`store.tsx:599-603`), so the second `addXp` overwrites the first modal's pending state.
+- **Current behavior:** Skipping from level 1 to level 4 in one payout shows one modal ("4"); the intermediate level-ups are silently swallowed. Simulated the reducer: a quest+bonus in one tick yields one modal, not two.
+- **Expected behavior:** Each level gained is acknowledged, or a single consolidated "Level 1 → 4" modal is shown.
+- **Recommended fix:** Collect gained levels into an array and drive a queue — the file already has this exact pattern in `achievementQueueRef`/`processAchievementQueue`. Reuse it.
+- **Risk if unfixed:** The core progression reward — the level-up moment — is lost precisely on the biggest, most exciting payouts.
+
+### P1-4 · Weekly and Event tabs are permanently empty
+
+- **Severity:** P1
+- **Files:** `components/screens/adventure-screen.tsx:13`, `lib/mock-data.ts:100-198`
+- **Root cause:** `tabs` advertises five categories but `initialQuests` contains only `Daily`, `Side`, and `Story`. No quest has `category: 'Weekly'` or `'Event'`.
+- **Current behavior:** Verified live — the Weekly tab (and Event) shows "No quests here yet" with no path to content, permanently.
+- **Expected behavior:** Either ship Weekly/Event quests or hide tabs with no content.
+- **Recommended fix:** Derive the tab list from the categories actually present in `quests`, or seed the missing categories.
+- **Risk if unfixed:** 40% of the primary content navigation is dead, reading as a broken or abandoned app.
+
+### P1-5 · `processAchievementQueue` is exported through context but absent from the `StoreValue` type
+
+- **Severity:** P1 (maintainability / type safety)
+- **Files:** `lib/store.tsx:74-162` (type), `768`, `829`
+- **Root cause:** The function is added to the context object and dependency array but never declared in the `StoreValue` type. It passes `tsc` only because the object is contextually typed rather than checked for excess properties through a fresh literal assignment — and `next.config.mjs` sets `typescript.ignoreBuildErrors: true`, removing the safety net entirely.
+- **Current behavior:** An internal scheduling primitive is silently part of the public store surface. Any consumer calling it would corrupt the achievement queue, and the type gives no warning.
+- **Expected behavior:** Internal helpers stay internal; the exported type matches the exported value exactly.
+- **Recommended fix:** Remove it from the context value and both dependency arrays. Separately, **turn off `ignoreBuildErrors`** — it currently hides all type regressions from CI.
+- **Risk if unfixed:** Type contract silently drifts from runtime; with `ignoreBuildErrors` on, genuine type errors ship undetected.
+
+### P1-6 · Theme setting is inert; app is hard-locked to dark
+
+- **Severity:** P1
+- **Files:** `components/profile/settings-sheet.tsx:143-165`, `lib/store.tsx:250,702`, `app/globals.css:31`, `app/layout.tsx:31`
+- **Root cause:** `setTheme` writes a string to state and nothing consumes it. There is no `dark` class toggle, no `documentElement` mutation, no `next-themes`. `globals.css` hardcodes `color-scheme: dark` and the viewport hardcodes `colorScheme: 'dark'`.
+- **Current behavior:** Selecting "Light" shows a success toast *"Theme set to Light"* and changes nothing. Same for Language — all four options are cosmetic; there is no i18n layer at all.
+- **Expected behavior:** Either the setting works, or it isn't offered.
+- **Recommended fix:** Wire theme to a real provider and add light-mode tokens, or remove the Theme/Language rows until implemented. Do not toast success for a no-op.
+- **Risk if unfixed:** Settings actively lie to users; a light-mode user in a bright environment has no recourse. Note the preview is currently requested in light mode and the app ignores it.
+
+---
+
+## P2 — Medium
+
+### P2-1 · Quest reward preview omits coins that are actually granted
+
+- **Files:** `components/screens/adventure-screen.tsx:213-260`, `lib/store.tsx:532-549`
+- **Root cause:** The detail screen lists money, XP, keys, and "Chance of a Chest" but never coins, even though `applyQuestReward` grants `questCoinReward(xp)` (300 coins for a 500 XP quest). The completion toast also omits coins.
+- **Current behavior:** Users silently receive a currency that the preview never promised.
+- **Recommended fix:** Add a coins row using the shared `questCoinReward()` helper (it exists precisely so preview and grant agree) and include coins in the toast.
+- **Risk:** Coins feel arbitrary; the shop's purpose is obscured.
+
+### P2-2 · Key reward formula duplicated inline instead of using the shared helper
+
+- **Files:** `components/screens/adventure-screen.tsx:245-247` vs `lib/mock-data.ts:277-279`
+- **Root cause:** The JSX inlines `quest.xpValue >= 500 ? 2 : 1` — a copy of `questKeyReward()`. The file's own comment says these helpers exist "so the numbers always agree."
+- **Recommended fix:** Call `questKeyReward(quest.xpValue)`.
+- **Risk:** The two will diverge the first time the formula is tuned.
+
+### P2-3 · Progress bar shows 50% while the label reads "0 / 1"
+
+- **Files:** `components/screens/adventure-screen.tsx:137-143`
+- **Root cause:** For quests without a `progress` object, `progressPct` falls back to a magic `50` for `active` state, while the adjacent label independently prints `0 / 1`.
+- **Current behavior:** Verified live on the sponsor-video quest — half-filled bar labelled "0 / 1".
+- **Recommended fix:** Make the numeric label and the bar read from one source.
+- **Risk:** Users distrust progress indicators.
+
+### P2-4 · Chest opening bypasses the affordability check it appears to enforce
+
+- **Files:** `lib/store.tsx:618-653`, `components/screens/inventory-screen.tsx:49-77`
+- **Root cause:** Chest/key sufficiency is checked **only** in the component before calling. `openChest()` itself re-validates *inventory cap* after the delay but not chest/key counts, then does `setChests(c => Math.max(0, c - 1))` — silently clamping instead of failing. Two rapid triggers can consume one chest twice.
+- **Recommended fix:** Move chest/key validation inside `openChest` alongside the existing cap re-check, and throw `NO_CHEST`/`NO_KEY` like the `NO_ENERGY` precedent.
+- **Risk:** Inconsistent guard style; state can drift under rapid input.
+
+### P2-5 · Energy is consumed even when the quest turns out to be uncompletable
+
+- **Files:** `lib/store.tsx:551-564`
+- **Root cause:** `consumeEnergy(ENERGY_COST)` runs *before* the delay and before the `!target || target.state === 'done'` guard. On that early return it hands back a zeroed reward but the energy is already gone.
+- **Recommended fix:** Validate the target first, or refund on the early-return path.
+- **Risk:** Users lose 6 of 30 energy (a 20% tank, ~9 minutes of regen) for nothing.
+
+### P2-6 · Energy economy allows only 5 quests, then a 9-minute wall
+
+- **Files:** `lib/store.tsx:64-67`
+- **Root cause:** `ENERGY_MAX=30`, `ENERGY_COST=6`, `ENERGY_REGEN_MS=90_000`. Computed: 5 completions from full, 45 minutes for a full refill.
+- **Current behavior:** There are only 8 quests total, so a user exhausts the content and hits the energy wall almost immediately, with no way to buy energy (the shop sells only keys and chests).
+- **Recommended fix:** Retune, or add energy to the coin shop so the 5,000 starting coins have a progression purpose.
+- **Risk:** New-user session ends abruptly in a forced wait — a severe retention problem for a first session.
+
+### P2-7 · Modals lack focus trapping and focus restoration
+
+- **Files:** `components/ui/modal.tsx`, `components/ui/sheet.tsx`, `components/referral-modal.tsx`
+- **Root cause:** Hand-rolled dialogs set `role="dialog"`/`aria-modal` and handle Escape, but never trap Tab, never move focus into the dialog on open, and never restore it on close. Background content stays reachable to screen readers and keyboards. `@radix-ui/react-dialog` **is already a dependency** and is unused.
+- **Recommended fix:** Rebuild these on the installed Radix Dialog primitive, which handles focus, trapping, and `aria-hidden` correctly.
+- **Risk:** Keyboard and screen-reader users can tab into hidden content behind the overlay; fails WCAG 2.4.3.
+
+### P2-8 · `ReferralModal` is not a modal and duplicates dialog logic
+
+- **Files:** `components/referral-modal.tsx`
+- **Root cause:** Bypasses the shared `Modal` entirely — bare `if (!isOpen) return null`, so no `AnimatePresence` exit animation (its `exit` prop never runs), no Escape handling, no `role="dialog"`, and it uses raw `bg-black/50` instead of design tokens.
+- **Recommended fix:** Render it through the shared `Modal`.
+- **Risk:** Inconsistent behavior/animation and an inaccessible dialog.
+
+### P2-9 · `navigator.clipboard` used without a fallback or error handling
+
+- **Files:** `components/referral-modal.tsx:24-30`
+- **Root cause:** Calls `navigator.clipboard.writeText(...)` without awaiting or catching, then unconditionally shows *"Copied to clipboard!"*. The API is undefined on non-secure origins and rejects when permission is denied.
+- **Recommended fix:** `await` inside try/catch; only toast success on resolve; provide a select-the-text fallback.
+- **Risk:** Unhandled promise rejection and a false success message; the referral quest can be completed with nothing copied.
+
+### P2-10 · Achievement counters can display a claim state that overruns the total
+
+- **Files:** `components/screens/profile-screen.tsx:180-186`, `lib/store.tsx:397-414`
+- **Root cause:** `claimAchievement` increments `badges` and `unlockAchievementProgress` *also* increments `badges` on unlock, so a single achievement can award two badges. `badges` is never derived from `achievements`.
+- **Recommended fix:** Derive `badges` from `achievements.filter(a => a.claimed).length`.
+- **Risk:** Badge count drifts upward and disagrees with the achievements list.
+
+### P2-11 · Two parallel "time ago" implementations, one unused
+
+- **Files:** `lib/mock-data.ts:258-269` (`formatRelativeTime`, **never imported**) vs `components/screens/home-screen.tsx:12-47` (`TimeAgoDisplay`, reimplements the same logic inline)
+- **Recommended fix:** Have `TimeAgoDisplay` call `formatRelativeTime`.
+- **Risk:** Divergent labels ("just now" vs "Just now" — they already differ in casing).
+
+### P2-12 · Per-item interval timers in the rewards feed
+
+- **Files:** `components/screens/home-screen.tsx:28-45`
+- **Root cause:** Every feed row mounts its own `setInterval(…, 60000)`. The feed holds up to 40 entries (`store.tsx:303`), so up to 40 independent timers run concurrently, each triggering its own state update and re-render.
+- **Recommended fix:** One shared ticker at the list level (or a context clock) driving all rows.
+- **Risk:** Needless wakeups and battery drain on mobile; scales linearly with feed length.
+
+---
+
+## P3 — Low
+
+| # | Issue | Files | Fix |
+|---|---|---|---|
+| P3-1 | **Unused dependencies shipped:** `@supabase/ssr`, `@supabase/supabase-js`, `sonner`, `@radix-ui/react-progress`, `@radix-ui/react-tabs`, `@radix-ui/react-slot`, `class-variance-authority` — all installed, none imported (verified by grep). Supabase in particular implies a backend that doesn't exist. | `package.json` | Remove, or actually adopt Radix/Supabase |
+| P3-2 | **Dead code:** `Avatar`/`formatRp`/`formatCompact`/`avatars` imported into `store.tsx` but several are unused there; `components/ui/button.tsx` and `components/ui/skeleton.tsx`'s `Skeleton` export are unreferenced; `DEFAULT_SURVEY` is imported and assigned to `surveyQuestions` but `hasSurvey` requires `quest.survey?.length`, so the fallback is unreachable. | `lib/store.tsx:13-40`, `adventure-screen.tsx:131-133` | Prune |
+| P3-3 | **`initialLoginDates = makeConsecutiveDays(0)`** — a function call that always returns `[]`. Obfuscates intent. | `lib/mock-data.ts:385` | Use `[]` |
+| P3-4 | **Hardcoded "Good Evening"** greeting regardless of actual time of day. | `home-screen.tsx:120` | Derive from local hour *after mount* (see P0-1) |
+| P3-5 | **`unlockedAt: 'Just now'`** stored as a frozen string, so every chest item reads "Just now" forever. | `store.tsx:640` | Store a timestamp; format at render |
+| P3-6 | **Non-null assertion on nav lookup:** `nav.find(...)!.Screen` throws if `tab` ever desyncs. | `app-shell.tsx:23` | Fall back to home |
+| P3-7 | **Redundant prop API:** `ActionButton` accepts both `onAction` and `onClick` as aliases for the same thing. | `ui/action-button.tsx:55-70` | Collapse to one |
+| P3-8 | **`CountUp` cleanup writes `fromRef.current = to`** on unmount even if the animation was interrupted mid-flight, so a remount jumps rather than resuming. | `ui/count-up.tsx:44-47` | Store the last displayed value |
+| P3-9 | **No CSP.** `next.config.mjs` sets good baseline headers (nosniff, Referrer-Policy, X-Frame-Options, Permissions-Policy) but no `Content-Security-Policy`. | `next.config.mjs` | Add report-only CSP, then enforce |
+| P3-10 | **`userScalable: false` / `maximumScale: 1`** blocks pinch-zoom. | `app/layout.tsx:31-36` | Remove; fails WCAG 1.4.4 |
+| P3-11 | **Achievement modal queue timing is fragile:** 2.5s + 300ms chained `setTimeout`s with no cleanup on unmount, so timers can fire after teardown. | `store.tsx:264-279` | Clear `achievementTimeoutRef` in a cleanup effect |
+| P3-12 | **`md:h-[860px]` fixed desktop frame** can clip content on short viewports. | `app-shell.tsx:26` | Use `max-h` with `dvh` |
+
+---
+
+## Telegram Mini App compatibility
+
+**No Telegram integration exists.** Grep for `telegram`, `WebApp`, `tg-` returns nothing; `@twa-dev/sdk` / `telegram-web-app.js` are absent. The audit brief lists this as a requirement, so treating it as a gap:
+
+| Requirement | Status |
+|---|---|
+| `telegram-web-app.js` script | Missing — `window.Telegram.WebApp` never referenced |
+| `ready()` / `expand()` lifecycle | Missing — viewport won't expand past the default sheet height |
+| `initData` validation | Missing — this is the **only** way a Mini App authenticates a user, and it must be HMAC-verified server-side |
+| Theme params (`themeParams`) | Missing — hardcoded dark (see P1-6) |
+| `BackButton` | Missing — uses in-app back only; hardware/Telegram back is unhandled |
+| `MainButton` | Not used |
+| `HapticFeedback` | Not used |
+| Safe-area insets | **Correctly handled** — `env(safe-area-inset-*)` used in shell, sheet, modal, toaster |
+| Viewport/layout | **Good** — `max-w-[420px]`, `h-dvh`, mobile-first; well suited |
+| `CloseButton` / closing confirmation | Not used — unsaved withdraw state can be lost |
+
+Note P3-10: Telegram Mini Apps generally *want* `userScalable: false`, so that one is defensible **if** Telegram is the sole target — but it conflicts with WCAG for a web build.
+
+Also relevant: with no persistence (see the architectural note), a Mini App that gets backgrounded and reloaded by Telegram loses all progress.
+
+---
+
+## Responsiveness & accessibility summary
+
+**Good:** consistent safe-area handling; mobile-first `max-w-[420px]` shell; `aria-busy` on async buttons; `aria-label` on icon-only controls; `aria-current="page"` on nav; `role="switch"`/`aria-checked` on `Toggle`; `sr-only` text for equipped-gear badges; `aria-invalid` on the withdraw input; verified clean at 384×639 with no horizontal overflow.
+
+**Gaps:**
+
+- No focus trapping/restoration in dialogs (P2-7)
+- Zoom disabled (P3-10)
+- `motion` animations ignore `prefers-reduced-motion` throughout
+- `SegmentedProgress` renders 16–24 bare `<span>`s with no `role="progressbar"` / `aria-valuenow`, so progress is invisible to assistive tech
+- Several tap targets (the 24×24px `h-6 w-6` toast dismiss, `h-5 w-5` sheet close) fall below the 44×44px recommendation
+- `motion.div` used as a clickable achievement row (`profile-screen.tsx:163`) is a non-focusable `div` with an `onClick` and no keyboard handler
+
+---
+
+## 1. Overall production readiness score
+
+# 31 / 100
+
+| Dimension | Score | Notes |
+|---|---|---|
+| Visual design & UI craft | 88 | Genuinely strong, cohesive, well-executed |
+| Component structure | 74 | Clean separation; store is oversized |
+| TypeScript hygiene | 45 | `tsc` clean, but `ignoreBuildErrors` voids it; type/value drift |
+| State management | 40 | Single mega-context, no memo splitting, derived state stored |
+| Core flow correctness | 26 | Video quest fraudulent, withdraw dead-ends, level-ups swallowed |
+| Data consistency | 15 | Seed data contradicts itself on three screens |
+| Error handling | 55 | Good toast coverage; guards inconsistently placed |
+| Accessibility | 48 | Good labels, no focus management |
+| Persistence & backend | 5 | None exists |
+| Security | 8 | Client-authoritative money |
+| Telegram readiness | 12 | Safe areas only |
+
+The UI layer would score in the 80s on its own. The score is dominated by the absence of a backend and by economy logic that is exploitable and self-contradictory.
+
+---
+
+## 2. Estimated effort to fix
+
+| Priority | Scope | Effort |
+|---|---|---|
+| **P0** | 5 issues. P0-1/-4/-5 are contained front-end fixes (~0.5–1 day). **P0-2 and P0-3 require a backend, an ad-network integration, and a server-authoritative ledger.** | **3–4 weeks** (≈1 day without backend work) |
+| **P1** | 6 issues — withdraw dead-end, Max guard, level-up queue, tab derivation, type cleanup, theme wiring (theme needs light tokens across all components). | **4–6 days** |
+| **P2** | 12 issues — reward-preview parity, guard relocation, economy retune, Radix dialog migration, timer consolidation, derived counters. | **5–8 days** |
+| **P3** | 12 issues — mostly mechanical pruning and polish. | **2–3 days** |
+
+- **Front-end-only total: ~2.5–4 weeks.**
+- **Genuinely production-ready** (with backend, auth, persistence, real ad integration, server-side ledger): **~8–11 weeks.**
+
+---
+
+## 3. Suggested order of implementation
+
+### Phase 0 — Decide the architecture (blocks everything)
+
+Choose the backend and whether real money is in scope. Every P0 either depends on this or is invalidated by it. Do not build further UI on client-authoritative state.
+
+### Phase 1 — Stop the bleeding (~1 day, no backend needed)
+
+1. **P0-1** hydration (`Date.now()` out of module scope) — unblocks clean dev/QA and removes the click-blocking overlay
+2. **P0-4 + P0-5** seed-data consistency — empty feed, derived counters
+3. **P1-5** disable `ignoreBuildErrors` and fix what surfaces — do this early so later phases are type-checked
+4. **P0-2** *hide* the sponsor-video quest as an immediate stopgap against ad fraud
+
+### Phase 2 — Backend foundation (~3–4 weeks)
+
+5. Auth + persistence (for Telegram, `initData` HMAC verification server-side)
+6. Server-authoritative economy ledger: XP, coins, balance, inventory
+7. **P0-3** real withdraw mutation with idempotency keys and server-side validation
+8. **P0-2** real rewarded-video provider with server-verified completion callback
+
+### Phase 3 — Repair core loops (~1 week)
+
+9. **P1-1 + P1-2** withdraw flow (inline connect, Max guard)
+10. **P1-3** level-up queue (reuse the existing achievement-queue pattern)
+11. **P2-4 + P2-5** move guards server-side alongside the new ledger
+12. **P1-4** derive tabs from real content
+
+### Phase 4 — Consistency & economy tuning (~1 week)
+
+13. **P2-1 + P2-2** reward preview parity via shared helpers
+14. **P2-6** retune energy; give the 5,000 starting coins a purpose
+15. **P2-10 + P2-11** derive badges, dedupe time formatting
+16. **P1-6** theme: implement properly or remove the setting
+
+### Phase 5 — Accessibility, performance, polish (~1 week)
+
+17. **P2-7 + P2-8** migrate dialogs to the already-installed Radix Dialog
+18. `prefers-reduced-motion`; `role="progressbar"` on `SegmentedProgress`; tap-target sizing
+19. **P2-12** consolidate feed timers
+20. **P3** sweep: prune unused deps and dead code; add report-only CSP
+
+### Phase 6 — Telegram Mini App (~1 week, if targeted)
+
+21. SDK, `ready()`/`expand()`, `BackButton`/`MainButton`, `themeParams`, haptics, closing confirmation
+
+---
+
+**Rationale for the ordering:** Phase 1 is deliberately front-loaded with cheap, high-impact fixes that make the app testable and stop the most embarrassing data contradictions — and it disables `ignoreBuildErrors` before the large Phase 2 changes land, so the compiler helps rather than hides. Phase 2 is sequenced before the remaining loop repairs because fixing withdraw-flow UX (P1-1/-2) or moving economy guards (P2-4/-5) against client-only state means writing that code twice.
