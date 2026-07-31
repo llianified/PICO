@@ -73,13 +73,13 @@
   .pixel-label {
     font-family: var(--font-pixel);
     text-transform: uppercase;
-    letter-spacing: 0.14em;
+    letter-spacing: 0.08em;
     line-height: 1;
   }
   /* uppercase micro-label rhythm used across section overlines */
   .overline {
     text-transform: uppercase;
-    letter-spacing: 0.16em;
+    letter-spacing: 0.18em;
   }
   .no-scrollbar::-webkit-scrollbar {
     display: none;

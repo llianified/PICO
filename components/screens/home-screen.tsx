@@ -17,7 +17,7 @@ const rewards: {
 
 export function HomeScreen() {
   return (
-    <div className="flex flex-col gap-8 px-6 pb-6 pt-6">
+    <div className="flex flex-col gap-8 px-6 pb-6 pt-2">
       {/* Greeting */}
       <header className="flex items-start justify-between">
         <div>
@@ -40,10 +40,10 @@ export function HomeScreen() {
 
       {/* Level / XP */}
       <section className="flex flex-col gap-3">
-        <span className="pixel-label text-[9px] text-muted-foreground">Level 12</span>
+        <span className="pixel-label text-[10px] text-muted-foreground">Level 12</span>
         <div className="flex items-baseline gap-2">
           <span className="font-mono text-4xl font-medium tracking-tight tnum">142,550</span>
-          <span className="pixel-label text-[9px] text-muted-foreground">XP</span>
+          <span className="pixel-label text-[10px] text-muted-foreground">XP</span>
         </div>
         <SegmentedProgress value={35} segments={24} />
         <div className="flex justify-between font-mono text-xs text-muted-foreground tnum">
@@ -80,14 +80,14 @@ export function HomeScreen() {
               <span className="font-mono text-3xl font-medium tnum">24</span>
               <span className="font-mono text-sm text-muted-foreground">/ 30</span>
             </div>
-            <p className="pixel-label mt-1.5 text-[8px] text-muted-foreground">+1 in 05:30</p>
+            <p className="pixel-label mt-2 text-[9px] text-muted-foreground">+1 in 05:30</p>
           </div>
         </div>
       </section>
 
       {/* Recent Rewards */}
-      <section className="flex flex-col gap-1">
-        <div className="mb-2 flex items-center justify-between">
+      <section className="flex flex-col gap-3">
+        <div className="flex items-center justify-between">
           <h2 className="text-sm font-medium">Recent Rewards</h2>
           <button className="flex items-center gap-0.5 text-xs text-muted-foreground transition-colors hover:text-foreground">
             View all <ChevronRight className="h-3.5 w-3.5" />

@@ -60,7 +60,7 @@ export function InventoryScreen() {
           </div>
           <div className="flex-1">
             <p className="text-sm font-medium">Explorer&apos;s Hat</p>
-            <p className="pixel-label mt-1 text-[8px] text-muted-foreground">Common · Head</p>
+            <p className="pixel-label mt-1.5 text-[9px] text-muted-foreground">Common · Head</p>
           </div>
           <span className="font-mono text-[11px] text-muted-foreground">2h ago</span>
         </div>

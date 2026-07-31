@@ -35,11 +35,11 @@ export function ProfileScreen() {
           />
         </div>
         <div className="flex-1">
-          <span className="pixel-label text-[9px] text-muted-foreground">Level 12</span>
-          <p className="mt-1 text-xl font-medium tracking-tight">Explorer</p>
-          <div className="mt-2.5">
+          <span className="pixel-label text-[10px] text-muted-foreground">Level 12</span>
+          <p className="mt-1.5 text-xl font-medium tracking-tight">Explorer</p>
+          <div className="mt-3">
             <SegmentedProgress value={35} segments={20} />
-            <p className="pixel-label mt-2 text-[8px] text-muted-foreground tnum">
+            <p className="pixel-label mt-2.5 text-[9px] text-muted-foreground tnum">
               70,000 / 200,000 XP
             </p>
           </div>
@@ -82,7 +82,7 @@ export function ProfileScreen() {
                 <p className="text-sm font-medium">{a.title}</p>
                 <p className="text-xs text-muted-foreground">{a.subtitle}</p>
               </div>
-              <span className="pixel-label text-[8px] text-muted-foreground tnum">{a.progress}</span>
+              <span className="pixel-label text-[9px] text-muted-foreground tnum">{a.progress}</span>
             </div>
           ))}
         </div>

@@ -180,7 +180,7 @@ export function AdventureScreen() {
   }
 
   return (
-    <div className="flex flex-col gap-6 px-6 pb-6 pt-2">
+    <div className="flex flex-col gap-8 px-6 pb-6 pt-2">
       <header className="flex items-center justify-between">
         <h1 className="text-3xl font-medium tracking-tight">Adventure</h1>
         <button
