@@ -3,7 +3,7 @@
 Checklist for every finding in [`PICO_PRODUCTION_AUDIT.md`](./PICO_PRODUCTION_AUDIT.md).
 Sequencing and rationale are in [`ROADMAP.md`](./ROADMAP.md).
 
-**10 of 35 fixed · 2 mitigated · 23 open.**
+**12 of 35 fixed · 2 mitigated · 21 open.**
 
 Legend: `[x]` fixed · `[~]` mitigated (risk reduced, root cause needs a backend) ·
 `[ ]` open.
@@ -82,17 +82,19 @@ incidentally during the P0 pass, P2-2 and P2-3 directly.
 
 ## P3
 
-0 of 12 fixed.
+Log: [`PICO_P3_REMEDIATION.md`](./PICO_P3_REMEDIATION.md) · 2 of 12 fixed — P3-3 and P3-6.
 
 - [ ] **P3-1** — Unused dependencies shipped
   - ⚠️ Largely obsolete: six of the seven named packages are no longer installed. Only
     `class-variance-authority` remains. Verify before acting.
 - [ ] **P3-2** — Dead code (unused imports, unreferenced `button`/`Skeleton`, unreachable `DEFAULT_SURVEY` fallback)
-- [ ] **P3-3** — `initialLoginDates = makeConsecutiveDays(0)` always returns `[]`
+- [x] **P3-3** — `initialLoginDates = makeConsecutiveDays(0)` always returns `[]`
+  - Now the literal `[]`; seeded value unchanged. `makeConsecutiveDays` is left unused — prune under P3-2
 - [ ] **P3-4** — Hardcoded "Good Evening" greeting
   - Must resolve after mount, or it reintroduces P0-1
 - [ ] **P3-5** — `unlockedAt: 'Just now'` frozen as a string
-- [ ] **P3-6** — Non-null assertion on nav lookup (`nav.find(...)!.Screen`)
+- [x] **P3-6** — Non-null assertion on nav lookup (`nav.find(...)!.Screen`)
+  - Falls back to `nav[0]` (home); the `as const` tuple makes the fallback assertion-free
 - [ ] **P3-7** — Redundant `onAction` / `onClick` prop aliases on `ActionButton`
 - [ ] **P3-8** — `CountUp` cleanup writes `fromRef.current = to` on interrupted animations
 - [ ] **P3-9** — No Content-Security-Policy
