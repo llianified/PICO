@@ -148,7 +148,7 @@ export const initialQuests: Quest[] = [
 export const initialTransactions: Transaction[] = []
 
 export const initialPaymentMethods: PaymentMethod[] = [
-  { id: 'dana', name: 'DANA', connected: true },
+  { id: 'dana', name: 'DANA', connected: false },
   { id: 'gopay', name: 'GoPay', connected: false },
   { id: 'ovo', name: 'OVO', connected: false },
   { id: 'bank', name: 'Bank Transfer', connected: false },
