@@ -148,6 +148,20 @@ function QuestDetail({ quest, onBack }: { quest: Quest; onBack: () => void }) {
     try {
       await startQuest(quest.id)
       toast({ title: 'Quest started', description: quest.title, variant: 'info' })
+    } catch (err) {
+      if (err instanceof Error && err.message === 'VIDEO_UNAVAILABLE') {
+        toast({
+          title: 'Not available yet',
+          description: 'Sponsor videos are coming soon.',
+          variant: 'error',
+        })
+      } else {
+        toast({
+          title: 'Could not start quest',
+          description: 'Something went wrong. Please try again.',
+          variant: 'error',
+        })
+      }
     } finally {
       setBusy(false)
     }

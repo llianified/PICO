@@ -27,6 +27,7 @@ import {
   questKeyReward,
   questMoneyReward,
   reconcileQuestAvailability,
+  REWARDED_VIDEO_ENABLED,
   resetDailyQuests,
   toDayKey,
   xpNeededForLevel,
@@ -56,6 +57,30 @@ export type RewardEvent = {
 } | null
 export type AchievementEvent = { title: string; subtitle: string } | null
 export type QuestReward = { xp: number; keys: number; chests: number; coins: number }
+
+/**
+ * Withdrawal rules. These live here — next to the ledger they guard — rather
+ * than in the sheet component, so the UI cannot be the only thing enforcing
+ * them. The sheet imports this constant for display and pre-validation.
+ */
+export const MIN_WITHDRAW = 10000
+
+export type WithdrawErrorCode =
+  | 'INVALID_AMOUNT'
+  | 'BELOW_MINIMUM'
+  | 'INSUFFICIENT_FUNDS'
+  | 'METHOD_UNAVAILABLE'
+  | 'IN_FLIGHT'
+
+/** A rejected withdrawal, with a machine-readable reason the UI can surface. */
+export class WithdrawError extends Error {
+  code: WithdrawErrorCode
+  constructor(code: WithdrawErrorCode, message: string) {
+    super(message)
+    this.name = 'WithdrawError'
+    this.code = code
+  }
+}
 
 /** Coins can be spent in the inventory shop to restock keys and chests. */
 export const KEY_COST = 800
@@ -145,7 +170,13 @@ type StoreValue = {
   claimAchievement: (id: string) => Promise<void>
 
   addXp: (amount: number) => void
-  withdraw: (amount: number, methodId: string) => Promise<void>
+  /**
+   * Debits the ledger. Validates the amount and the payment method against
+   * store state (never against caller-supplied values) and rejects with a
+   * `WithdrawError`. `idempotencyKey` makes a retry of the *same* attempt safe:
+   * a key that already succeeded is a no-op rather than a second debit.
+   */
+  withdraw: (amount: number, methodId: string, idempotencyKey?: string) => Promise<void>
   connectPaymentMethod: (id: string) => Promise<void>
   startQuest: (id: string) => Promise<void>
   setQuestProgress: (id: string, newProgress: number) => void
@@ -223,18 +254,28 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [transactions, setTransactions] = useState<Transaction[]>(initialTransactions)
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>(initialPaymentMethods)
 
+  // Always-current snapshots so `withdraw` validates against live store state
+  // instead of a value captured when the callback was created.
+  const balanceRef = useRef(balance)
+  balanceRef.current = balance
+  const paymentMethodsRef = useRef(paymentMethods)
+  paymentMethodsRef.current = paymentMethods
+  /** Guards against two withdrawals overlapping and both passing the balance check. */
+  const withdrawInFlightRef = useRef(false)
+  /** Idempotency keys that already debited the ledger; replays are no-ops. */
+  const settledWithdrawalsRef = useRef<Set<string>>(new Set())
+
   const [quests, setQuests] = useState<Quest[]>(initialQuests)
   // Always-fresh snapshot so completeQuest can compute rewards without
   // running side effects inside a state updater (safe under StrictMode).
   const questsRef = useRef(quests)
   questsRef.current = quests
 
+  // Deliberate starter grant so a new player can open their first chest and use
+  // the shop. Everything else is earned.
   const [chests, setChests] = useState(2)
   const [keys, setKeys] = useState(1)
   const [coins, setCoins] = useState(5000)
-  const [artifacts, setArtifacts] = useState(1)
-  const [badges, setBadges] = useState(1)
-  const [collectionOwned, setCollectionOwned] = useState(12)
   const collectionTotal = 48
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>(initialInventoryItems)
   const inventoryItemsRef = useRef(inventoryItems)
@@ -243,6 +284,20 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [equipped, setEquipped] = useState<Record<string, string>>({})
 
   const [achievements, setAchievements] = useState<Achievement[]>(initialAchievements)
+
+  // Inventory/collection counters are DERIVED, never stored. Storing them
+  // independently let them drift from what the player actually owns (a fresh
+  // account claimed 1 artifact, 1 badge and 12 collectibles with an empty
+  // inventory and no claimed achievements). Deriving makes drift impossible.
+  const artifacts = useMemo(
+    () => inventoryItems.filter((i) => i.slot === 'Artifact').length,
+    [inventoryItems],
+  )
+  const badges = useMemo(() => achievements.filter((a) => a.claimed).length, [achievements])
+  const collectionOwned = useMemo(
+    () => Math.min(collectionTotal, inventoryItems.length),
+    [inventoryItems],
+  )
 
   const [rewardsFeed, setRewardsFeed] = useState<RewardFeedItem[]>(initialRewardsFeed)
 
@@ -268,7 +323,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }
     
     const next = achievementQueueRef.current.shift()!
-    setBadges((b) => b + 1)
     setAchievementEvent({ title: next.title, subtitle: next.subtitle })
     
     // Show for 2.5s then process next
@@ -404,7 +458,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         return { ...a, claimed: true }
       }),
     )
-    setBadges((b) => b + 1)
+    // No badge counter to bump — `badges` is derived from claimed achievements.
     if (claimedTitle) {
       setAchievementEvent({
         title: claimedTitle,
@@ -467,20 +521,69 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [processAchievementQueue])
 
   const withdraw = useCallback(
-    async (amount: number, methodId: string) => {
-      await delay(1600)
-      const method = initialPaymentMethods.find((m) => m.id === methodId)
-      setBalance((prev) => prev - amount)
-      const tx: Transaction = {
-        id: 'tx' + Date.now(),
-        title: `Withdrawal · ${method?.name ?? 'Wallet'}`,
-        amount,
-        type: 'withdraw',
-        time: 'Just now',
-        status: 'completed',
+    async (amount: number, methodId: string, idempotencyKey?: string) => {
+      // NOTE: this is still a client-side ledger, so it is not *authoritative* —
+      // only a real server that re-derives the balance from its own ledger can
+      // be. What follows removes the paths that let the UI (or a retry) mint or
+      // double-spend money, and is the shape the server call should take.
+
+      // 1. Idempotency — a retried attempt that already succeeded must never
+      //    debit twice. Replaying a completed key is a silent no-op.
+      if (idempotencyKey && settledWithdrawalsRef.current.has(idempotencyKey)) {
+        return
       }
-      setTransactions((prev) => [tx, ...prev])
-      unlockAchievementProgress('rich', 1)
+      // 2. One withdrawal at a time, so two concurrent submits cannot both pass
+      //    the balance check below and overdraw.
+      if (withdrawInFlightRef.current) {
+        throw new WithdrawError('IN_FLIGHT', 'A withdrawal is already being processed.')
+      }
+
+      // 3. Validate the amount itself. Never trust the caller's number.
+      const validate = () => {
+        if (!Number.isFinite(amount) || !Number.isInteger(amount) || amount <= 0) {
+          throw new WithdrawError('INVALID_AMOUNT', 'Please enter a valid amount.')
+        }
+        if (amount < MIN_WITHDRAW) {
+          throw new WithdrawError('BELOW_MINIMUM', `Minimum withdrawal is ${formatRp(MIN_WITHDRAW)}.`)
+        }
+        // Read the balance from the store, not from anything the caller passed.
+        if (amount > balanceRef.current) {
+          throw new WithdrawError('INSUFFICIENT_FUNDS', 'Insufficient balance for this amount.')
+        }
+        const m = paymentMethodsRef.current.find((pm) => pm.id === methodId)
+        if (!m || !m.connected) {
+          throw new WithdrawError('METHOD_UNAVAILABLE', 'Select a connected payment method.')
+        }
+        return m
+      }
+
+      const method = validate()
+      withdrawInFlightRef.current = true
+      try {
+        await delay(1600)
+        // 4. Re-validate after the await — the balance may have changed while
+        //    the request was in flight (a concurrent spend, a reset, etc.).
+        validate()
+
+        setBalance((prev) => {
+          // Final guard: never let the balance go negative, whatever happened.
+          if (amount > prev) return prev
+          return prev - amount
+        })
+        const tx: Transaction = {
+          id: 'tx' + Date.now() + Math.random().toString(36).slice(2, 6),
+          title: `Withdrawal · ${method.name}`,
+          amount,
+          type: 'withdraw',
+          time: 'Just now',
+          status: 'completed',
+        }
+        setTransactions((prev) => [tx, ...prev])
+        if (idempotencyKey) settledWithdrawalsRef.current.add(idempotencyKey)
+        unlockAchievementProgress('rich', 1)
+      } finally {
+        withdrawInFlightRef.current = false
+      }
     },
     [unlockAchievementProgress],
   )
@@ -491,6 +594,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const startQuest = useCallback(async (id: string) => {
+    // Rewarded-video quests must not become completable while there is no ad
+    // player and no verified completion callback — otherwise "watching" pays out
+    // without a view. The quest is already filtered out of the catalogue; this
+    // is the backstop if one ever reaches the store anyway.
+    const target = questsRef.current.find((q) => q.id === id)
+    if (target?.state === 'video' && !REWARDED_VIDEO_ENABLED) {
+      throw new Error('VIDEO_UNAVAILABLE')
+    }
     await delay(1200)
     setQuests((prev) => prev.map((q) => (q.id === id ? { ...q, state: 'active' } : q)))
   }, [])
@@ -627,8 +738,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setChests((c) => Math.max(0, c - 1))
     setKeys((k) => Math.max(0, k - 1))
     setCoins((c) => c + coinReward)
-    setArtifacts((a) => a + 1)
-    setCollectionOwned((o) => Math.min(collectionTotal, o + 1))
+    // artifacts / collectionOwned update themselves — they are derived from the
+    // item appended below.
 
     const newItem: InventoryItem = {
       id: 'item' + Date.now(),
