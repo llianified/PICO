@@ -141,9 +141,9 @@ export function HomeScreen() {
           </button>
         </div>
         <div className="flex flex-col divide-y divide-border">
-          {rewards.map((r) => (
+          {rewardsFeed.map((r) => (
             <button
-              key={r.title}
+              key={r.id}
               onClick={() => navigate('wallet')}
               className="-mx-2 flex items-center gap-3 rounded-md px-2 py-3 text-left transition-colors duration-150 hover:bg-surface active:scale-[0.99]"
             >
@@ -155,8 +155,8 @@ export function HomeScreen() {
                 <p className="truncate text-xs text-muted-foreground">{r.subtitle}</p>
               </div>
               <div className="shrink-0 text-right">
-                <p className="font-mono text-xs font-medium tnum">{r.xp}</p>
-                <p className="font-mono text-[10px] text-muted-foreground">{r.time}</p>
+                <p className="font-mono text-xs font-medium tnum">{r.value}</p>
+                <p className="font-mono text-[10px] text-muted-foreground">{timeAgo(r.createdAt)}</p>
               </div>
             </button>
           ))}
