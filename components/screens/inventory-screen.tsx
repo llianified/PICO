@@ -9,9 +9,7 @@ import { CountUp } from '@/components/ui/count-up'
 import { ActionButton } from '@/components/ui/action-button'
 import { BottomSheet } from '@/components/ui/sheet'
 import { formatCompact, type InventoryItem } from '@/lib/mock-data'
-import { useStore, KEY_COST, CHEST_COST } from '@/lib/store'
-
-const INVENTORY_CAP = 12
+import { useStore, KEY_COST, CHEST_COST, INVENTORY_CAP } from '@/lib/store'
 
 export function InventoryScreen() {
   const {

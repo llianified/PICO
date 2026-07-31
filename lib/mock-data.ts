@@ -138,6 +138,7 @@ export const initialQuests: Quest[] = [
     state: 'todo',
     detail: 'Return each day to keep your streak alive.',
     available: true,
+    progress: { current: 0, total: 1 },
   },
   {
     id: 'sponsor',
@@ -290,11 +291,11 @@ export function questMoneyReward(xp: number): number {
 
 // ---------------------------------------------------------------------------
 // Leveling curve — quadratic growth. The first level-up (1 → 2) costs the base
-// 50 XP, and each subsequent level scales with level², so higher levels get
+// 500 XP, and each subsequent level scales with level², so higher levels get
 // meaningfully harder instead of leveling up every few quests.
-//   Lvl 1→2: 50   Lvl 2→3: 200   Lvl 3→4: 450   Lvl 4→5: 800   Lvl 5→6: 1250
+//   Lvl 1→2: 500   Lvl 2→3: 2000   Lvl 3→4: 4500   Lvl 4→5: 8000   Lvl 5→6: 12500
 // ---------------------------------------------------------------------------
-export const LEVEL_XP_BASE = 50
+export const LEVEL_XP_BASE = 500
 
 /** XP required to advance FROM the given level to the next one. */
 export function xpNeededForLevel(level: number): number {
@@ -387,4 +388,29 @@ export const initialLoginDates = makeConsecutiveDays(0)
  * Steps badge claimed, survey reward matching the first transactions) so the
  * feed is internally consistent from the very first render.
  */
-export const initialRewardsFeed: RewardFeedItem[] = []
+export const initialRewardsFeed: RewardFeedItem[] = [
+  {
+    id: 'rw1',
+    sprite: 'trophy',
+    title: 'Quest Completed',
+    subtitle: 'Gather 100 Gold · +50 Coins',
+    value: '+150 XP',
+    createdAt: Date.now() - 5 * 60000, // 5 mins ago
+  },
+  {
+    id: 'rw2',
+    sprite: 'chest',
+    title: 'Chest Opened',
+    subtitle: 'Found a Rare Item',
+    value: 'Legendary Sword',
+    createdAt: Date.now() - 15 * 60000, // 15 mins ago
+  },
+  {
+    id: 'rw3',
+    sprite: 'coin',
+    title: 'Money Earned',
+    subtitle: 'Daily bonus',
+    value: '+5,000 Rp',
+    createdAt: Date.now() - 1 * 3600000, // 1 hour ago
+  },
+]

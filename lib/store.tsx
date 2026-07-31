@@ -28,6 +28,7 @@ import {
   reconcileQuestAvailability,
   resetDailyQuests,
   toDayKey,
+  xpNeededForLevel,
   type Achievement,
   type Avatar,
   type InventoryItem,
@@ -77,6 +78,7 @@ type StoreValue = {
   // profile / progression
   name: string
   avatarId: string
+  referralCode: string
   level: number
   totalXp: number
   levelXp: number
@@ -165,10 +167,31 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const [name, setName] = useState('Explorer')
   const [avatarId, setAvatarId] = useState<string>('explorer')
+  const referralCode = useMemo(() => {
+    // Generate a consistent referral code based on user name and avatar
+    const seed = `${name}-${avatarId}-pico`
+    let hash = 0
+    for (let i = 0; i < seed.length; i++) {
+      const char = seed.charCodeAt(i)
+      hash = (hash << 5) - hash + char
+      hash = hash & hash // Convert to 32bit integer
+    }
+    return `PICO${Math.abs(hash).toString(36).toUpperCase().slice(0, 6)}`
+  }, [name, avatarId])
   const [level, setLevel] = useState(1)
   const [totalXp, setTotalXp] = useState(0)
   const [levelXp, setLevelXp] = useState(0)
   const [levelXpNeeded, setLevelXpNeeded] = useState(LEVEL_XP_BASE)
+  
+  const levelRef = useRef(1)
+  const levelXpRef = useRef(0)
+  const levelXpNeededRef = useRef(LEVEL_XP_BASE)
+  
+  useEffect(() => {
+    levelRef.current = level
+    levelXpRef.current = levelXp
+    levelXpNeededRef.current = levelXpNeeded
+  }, [level, levelXp, levelXpNeeded])
 
   // Streak is derived from a mocked login history, never hardcoded.
   const [loginDates, setLoginDates] = useState<string[]>(initialLoginDates)
@@ -204,12 +227,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const questsRef = useRef(quests)
   questsRef.current = quests
 
-  const [chests, setChests] = useState(0)
-  const [keys, setKeys] = useState(0)
-  const [coins, setCoins] = useState(0)
-  const [artifacts, setArtifacts] = useState(0)
-  const [badges, setBadges] = useState(0)
-  const [collectionOwned, setCollectionOwned] = useState(0)
+  const [chests, setChests] = useState(2)
+  const [keys, setKeys] = useState(1)
+  const [coins, setCoins] = useState(5000)
+  const [artifacts, setArtifacts] = useState(1)
+  const [badges, setBadges] = useState(1)
+  const [collectionOwned, setCollectionOwned] = useState(12)
   const collectionTotal = 48
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>(initialInventoryItems)
   // Nothing equipped on a fresh start — the player has no items yet.
@@ -372,27 +395,33 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const addXp = useCallback((amount: number) => {
     setTotalXp((prev) => prev + amount)
+    
+    // Calculate all the leveling changes first, then apply them atomically
     setLevelXp((prevXp) => {
       let xp = prevXp + amount
-      let leveledUp = false
-      let newLevel = 0
-      setLevelXpNeeded((prevNeeded) => {
-        let needed = prevNeeded
-        setLevel((prevLevel) => {
-          let lvl = prevLevel
-          while (xp >= needed) {
-            xp -= needed
-            lvl += 1
-            needed = Math.round(needed * 1.15)
-            leveledUp = true
-            newLevel = lvl
-          }
-          if (leveledUp) {
-            setTimeout(() => setLevelUp({ level: newLevel }), 400)
-          }
-          return lvl
-        })
-        return needed
+      setLevel((prevLevel) => {
+        let lvl = prevLevel
+        let needed = xpNeededForLevel(lvl)
+        let leveledUp = false
+        let newLevel = 0
+
+        // Calculate all level ups
+        while (xp >= needed) {
+          xp -= needed
+          lvl += 1
+          needed = xpNeededForLevel(lvl)
+          leveledUp = true
+          newLevel = lvl
+        }
+
+        // Update the XP needed for the final level AFTER we've calculated everything
+        setLevelXpNeeded(needed)
+
+        if (leveledUp) {
+          setTimeout(() => setLevelUp({ level: newLevel }), 400)
+        }
+
+        return lvl
       })
       return xp
     })
@@ -442,6 +471,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const startQuest = useCallback(async (id: string) => {
     await delay(1200)
     setQuests((prev) => prev.map((q) => (q.id === id ? { ...q, state: 'active' } : q)))
+  }, [])
+
+  const setQuestProgress = useCallback((id: string, newProgress: number) => {
+    setQuests((prev) =>
+      prev.map((q) =>
+        q.id === id && q.progress
+          ? { ...q, progress: { ...q.progress, current: Math.min(newProgress, q.progress.total) } }
+          : q,
+      ),
+    )
   }, [])
 
   const grantMoney = useCallback((reward: number, title: string) => {
@@ -607,13 +646,25 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     await delay(700)
     setCoins((c) => c - KEY_COST)
     setKeys((k) => k + 1)
-  }, [])
+    logReward({
+      sprite: 'key',
+      title: 'Key Purchased',
+      subtitle: `Inventory Shop`,
+      value: `-${formatCompact(KEY_COST)} coins`,
+    })
+  }, [logReward])
 
   const buyChest = useCallback(async () => {
     await delay(700)
     setCoins((c) => c - CHEST_COST)
     setChests((c) => c + 1)
-  }, [])
+    logReward({
+      sprite: 'chest',
+      title: 'Chest Purchased',
+      subtitle: `Inventory Shop`,
+      value: `-${formatCompact(CHEST_COST)} coins`,
+    })
+  }, [logReward])
 
   const updateProfile = useCallback((data: { name?: string; avatarId?: string }) => {
     if (data.name !== undefined) setName(data.name)
@@ -639,6 +690,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       navigate,
       name,
       avatarId,
+      referralCode,
       level,
       totalXp,
       levelXp,
@@ -687,6 +739,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       withdraw,
       connectPaymentMethod,
       startQuest,
+      setQuestProgress,
       completeQuest,
       openChest,
       equipItem,
@@ -746,6 +799,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       withdraw,
       connectPaymentMethod,
       startQuest,
+      setQuestProgress,
       completeQuest,
       openChest,
       equipItem,

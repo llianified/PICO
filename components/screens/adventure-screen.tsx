@@ -1,11 +1,12 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { Check, ChevronLeft, ChevronRight, HelpCircle, Loader2, Play, Compass } from 'lucide-react'
 import { Progress, SegmentedProgress, Tag } from '@/components/primitives'
 import { PixelSprite } from '@/components/pixel-sprite'
 import { BottomSheet } from '@/components/ui/sheet'
+import { ReferralModal } from '@/components/referral-modal'
 import { useStore } from '@/lib/store'
 import { DEFAULT_SURVEY, formatRp, questMoneyReward, type Quest } from '@/lib/mock-data'
 
@@ -109,14 +110,24 @@ function QuestSurvey({
 }
 
 function QuestDetail({ quest, onBack }: { quest: Quest; onBack: () => void }) {
-  const { startQuest, completeQuest, toast } = useStore()
+  const { startQuest, setQuestProgress, completeQuest, toast, referralCode, name } = useStore()
   const [busy, setBusy] = useState(false)
   const [xpBurst, setXpBurst] = useState(false)
   const [answers, setAnswers] = useState<Record<string, string>>({})
+  const [hasAutoStarted, setHasAutoStarted] = useState(false)
+  const [showReferralModal, setShowReferralModal] = useState(false)
+
+  // Auto-start quests with progress tracking (like checkin quests)
+  useEffect(() => {
+    if (quest.state !== 'active' && quest.progress && !hasAutoStarted) {
+      startQuest(quest.id)
+      setHasAutoStarted(true)
+    }
+  }, [quest.id, quest.state, quest.progress, hasAutoStarted, startQuest])
 
   const surveyQuestions = quest.survey?.length ? quest.survey : DEFAULT_SURVEY
-  const hasSurvey = quest.state === 'active'
-  const surveyComplete = surveyQuestions.every((q) => answers[q.id])
+  const hasSurvey = quest.state === 'active' && !!quest.survey?.length
+  const surveyComplete = hasSurvey ? surveyQuestions.every((q) => answers[q.id]) : true
 
   const progressPct = quest.progress
     ? (quest.progress.current / quest.progress.total) * 100
@@ -169,6 +180,7 @@ function QuestDetail({ quest, onBack }: { quest: Quest; onBack: () => void }) {
   }
 
   return (
+    <>
     <div className="flex min-h-full flex-col px-6 pb-6 pt-2">
       <header className="mb-6 flex items-center">
         <button
@@ -269,25 +281,62 @@ function QuestDetail({ quest, onBack }: { quest: Quest; onBack: () => void }) {
           Quest Completed
         </div>
       ) : quest.state === 'active' ? (
-        <button
-          onClick={handleComplete}
-          disabled={busy || !surveyComplete}
-          aria-busy={busy}
-          className="group flex items-center justify-center gap-1.5 rounded-lg bg-primary px-5 py-4 text-[15px] font-medium text-primary-foreground transition-all duration-100 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {busy ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" /> Completing…
-            </>
-          ) : !surveyComplete ? (
-            'Answer all questions'
+        <>
+          {quest.progress && quest.progress.current < quest.progress.total ? (
+            <button
+              onClick={async () => {
+                setBusy(true)
+                await new Promise(resolve => setTimeout(resolve, 700))
+                
+                if (quest.id === 'invite') {
+                  setShowReferralModal(true)
+                } else if (quest.id === 'login') {
+                  // Login quest: checkin → immediately complete
+                  setQuestProgress(quest.id, quest.progress!.current + 1)
+                  await new Promise(resolve => setTimeout(resolve, 500))
+                  handleComplete()
+                } else {
+                  setQuestProgress(quest.id, quest.progress!.current + 1)
+                }
+                setBusy(false)
+              }}
+              disabled={busy}
+              aria-busy={busy}
+              className="group flex items-center justify-center gap-1.5 rounded-lg bg-primary px-5 py-4 text-[15px] font-medium text-primary-foreground transition-all duration-100 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {busy ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" /> {quest.id === 'invite' ? 'Opening...' : quest.id === 'login' ? 'Checking in…' : 'Checking in…'}
+                </>
+              ) : (
+                <>
+                  {quest.id === 'invite' ? 'Get Referral Link' : 'Check In'}
+                  <Check className="h-5 w-5 transition-transform duration-150 group-hover:scale-110" />
+                </>
+              )}
+            </button>
           ) : (
-            <>
-              Complete Quest
-              <ChevronRight className="h-5 w-5 transition-transform duration-150 group-hover:translate-x-0.5" />
-            </>
+            <button
+              onClick={handleComplete}
+              disabled={busy || !surveyComplete}
+              aria-busy={busy}
+              className="group flex items-center justify-center gap-1.5 rounded-lg bg-primary px-5 py-4 text-[15px] font-medium text-primary-foreground transition-all duration-100 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {busy ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" /> Completing…
+                </>
+              ) : !surveyComplete ? (
+                'Answer all questions'
+              ) : (
+                <>
+                  Complete Quest
+                  <ChevronRight className="h-5 w-5 transition-transform duration-150 group-hover:translate-x-0.5" />
+                </>
+              )}
+            </button>
           )}
-        </button>
+        </>
       ) : (
         <button
           onClick={handleStart}
@@ -310,6 +359,17 @@ function QuestDetail({ quest, onBack }: { quest: Quest; onBack: () => void }) {
         </button>
       )}
     </div>
+
+      <ReferralModal
+        isOpen={showReferralModal}
+        referralCode={referralCode}
+        playerName={name}
+        onInviteSent={() => {
+          setQuestProgress(quest.id, quest.progress!.current + 1)
+        }}
+        onClose={() => setShowReferralModal(false)}
+      />
+    </>
   )
 }
 
