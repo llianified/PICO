@@ -1,0 +1,78 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-border: var(--border);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-accent: var(--accent);
+  --color-ring: var(--ring);
+
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-plex-mono);
+
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+}
+
+:root {
+  color-scheme: dark;
+  --background: #090909;
+  --surface: #111111;
+  --card: #151515;
+  --card-foreground: #ffffff;
+  --foreground: #ffffff;
+  --border: #2a2a2a;
+  --muted: #1a1a1a;
+  --muted-foreground: #8a8a8a;
+  --secondary: #1a1a1a;
+  --secondary-foreground: #ffffff;
+  --primary: #ffffff;
+  --primary-foreground: #090909;
+  --accent: #ffffff;
+  --ring: #3a3a3a;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    @apply bg-background;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+@layer utilities {
+  /* Crisp pixel-art rendering for decorative pixel assets */
+  .pixelated {
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+  }
+  /* thin monospaced tabular numbers for XP / LEVEL */
+  .tnum {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
