@@ -109,6 +109,7 @@ Everything below is real and worth fixing, but items P0-2 and P0-3 in particular
 
 ### P1-1 · Withdraw sheet dead-ends when no payment method is connected
 
+- **Status:** ✅ **Fixed.** The empty state keeps its dashed container, `Plus` icon and copy, and now also renders one real `ActionButton` per unconnected method that calls `connectPaymentMethod(m.id)` inline — no need to leave the sheet. Crucially it also calls `setMethodId(m.id)`: `methodId` is only seeded on mount, so connecting without selecting would have moved the dead-end one step later ("Select a payment method", Continue still disabled). Reuses the existing `ActionButton` for the Connecting/Connected lifecycle, so no new UI patterns were introduced. Verified live at 384×639 end-to-end.
 - **Severity:** P1
 - **Files:** `components/wallet/withdraw-sheet.tsx:160-168`
 - **Root cause:** The empty branch renders static text *"Connect a payment method first."* with a decorative `Plus` icon that is **not a button** and has no handler. The connect flow only exists on the Wallet screen behind "Manage".

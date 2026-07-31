@@ -4,6 +4,7 @@ import { useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { AlertCircle, Check, ChevronRight, Loader2, Plus } from 'lucide-react'
 import { BottomSheet } from '@/components/ui/sheet'
+import { ActionButton } from '@/components/ui/action-button'
 import { PixelSprite } from '@/components/pixel-sprite'
 import { formatRp } from '@/lib/mock-data'
 import { useStore, MIN_WITHDRAW, WithdrawError } from '@/lib/store'
@@ -13,7 +14,7 @@ const QUICK = [10000, 25000, 50000]
 type Step = 'form' | 'confirm' | 'success'
 
 export function WithdrawSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { balance, paymentMethods, withdraw, toast } = useStore()
+  const { balance, paymentMethods, withdraw, connectPaymentMethod, toast } = useStore()
   const connected = paymentMethods.filter((m) => m.connected)
 
   const [step, setStep] = useState<Step>('form')
@@ -183,9 +184,33 @@ export function WithdrawSheet({ open, onClose }: { open: boolean; onClose: () =>
             <div className="flex flex-col gap-2">
               <span className="text-xs text-muted-foreground">Payment method</span>
               {connected.length === 0 ? (
-                <div className="flex items-center gap-3 rounded-lg border border-dashed border-border bg-card p-4 text-sm text-muted-foreground">
-                  <Plus className="h-4 w-4" />
-                  Connect a payment method first.
+                <div className="flex flex-col gap-3 rounded-lg border border-dashed border-border bg-card p-4">
+                  <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                    <Plus className="h-4 w-4" />
+                    Connect a payment method first.
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {paymentMethods
+                      .filter((m) => !m.connected)
+                      .map((m) => (
+                        <ActionButton
+                          key={m.id}
+                          onAction={async () => {
+                            await connectPaymentMethod(m.id)
+                            // Select it immediately: `methodId` is only seeded on mount,
+                            // so without this the sheet would still block on
+                            // "Select a payment method" after connecting.
+                            setMethodId(m.id)
+                            toast({ title: `${m.name} connected`, variant: 'success' })
+                          }}
+                          loadingText="Connecting"
+                          successText="Connected"
+                          className="h-8 rounded-md border border-border bg-card px-3 text-xs text-foreground hover:border-ring"
+                        >
+                          {m.name}
+                        </ActionButton>
+                      ))}
+                  </div>
                 </div>
               ) : (
                 <div className="flex flex-col gap-2">
