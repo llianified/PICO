@@ -180,6 +180,7 @@ function QuestDetail({ quest, onBack }: { quest: Quest; onBack: () => void }) {
   }
 
   return (
+    <>
     <div className="flex min-h-full flex-col px-6 pb-6 pt-2">
       <header className="mb-6 flex items-center">
         <button
@@ -368,6 +369,7 @@ function QuestDetail({ quest, onBack }: { quest: Quest; onBack: () => void }) {
         onClose={() => setShowReferralModal(false)}
       />
     </div>
+    </>
   )
 }
 
@@ -459,16 +461,6 @@ export function AdventureScreen() {
           </li>
         </ul>
       </BottomSheet>
-
-      <ReferralModal
-        isOpen={showReferralModal}
-        referralCode={referralCode}
-        playerName={name}
-        onInviteSent={() => {
-          setQuestProgress(quest.id, quest.progress!.current + 1)
-        }}
-        onClose={() => setShowReferralModal(false)}
-      />
     </div>
   )
 }

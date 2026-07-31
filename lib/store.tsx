@@ -13,6 +13,7 @@ import {
 import {
   avatars,
   computeStreak,
+  formatCompact,
   formatRp,
   initialAchievements,
   initialInventoryItems,
@@ -147,6 +148,7 @@ type StoreValue = {
   withdraw: (amount: number, methodId: string) => Promise<void>
   connectPaymentMethod: (id: string) => Promise<void>
   startQuest: (id: string) => Promise<void>
+  setQuestProgress: (id: string, newProgress: number) => void
   completeQuest: (id: string) => Promise<QuestReward>
   openChest: () => Promise<RewardEvent>
   equipItem: (id: string) => void
