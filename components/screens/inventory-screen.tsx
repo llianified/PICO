@@ -2,13 +2,14 @@
 
 import { useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { ChevronRight, Loader2, Package } from 'lucide-react'
+import { Check, ChevronRight, Loader2, Package } from 'lucide-react'
 import { SegmentedProgress } from '@/components/primitives'
 import { PixelSprite, type SpriteName } from '@/components/pixel-sprite'
 import { CountUp } from '@/components/ui/count-up'
+import { ActionButton } from '@/components/ui/action-button'
 import { BottomSheet } from '@/components/ui/sheet'
 import { formatCompact, type InventoryItem } from '@/lib/mock-data'
-import { useStore } from '@/lib/store'
+import { useStore, KEY_COST, CHEST_COST } from '@/lib/store'
 
 const INVENTORY_CAP = 12
 
@@ -22,13 +23,20 @@ export function InventoryScreen() {
     collectionOwned,
     collectionTotal,
     inventoryItems,
+    equipped,
     openChest,
+    equipItem,
+    buyKey,
+    buyChest,
     toast,
   } = useStore()
 
   const [opening, setOpening] = useState(false)
   const [activeItem, setActiveItem] = useState<InventoryItem | null>(null)
   const [allOpen, setAllOpen] = useState(false)
+
+  const isEquipped = (item: InventoryItem | null) =>
+    !!item && equipped[item.slot] === item.id
 
   const collectionPct = Math.round((collectionOwned / collectionTotal) * 100)
 
@@ -61,6 +69,24 @@ export function InventoryScreen() {
     } finally {
       setOpening(false)
     }
+  }
+
+  async function handleBuyKey() {
+    if (coins < KEY_COST) {
+      toast({ title: 'Not enough coins', description: `You need ${formatCompact(KEY_COST)} coins.`, variant: 'error' })
+      throw new Error('insufficient coins')
+    }
+    await buyKey()
+    toast({ title: 'Key purchased', description: `-${formatCompact(KEY_COST)} coins · +1 Key`, variant: 'success' })
+  }
+
+  async function handleBuyChest() {
+    if (coins < CHEST_COST) {
+      toast({ title: 'Not enough coins', description: `You need ${formatCompact(CHEST_COST)} coins.`, variant: 'error' })
+      throw new Error('insufficient coins')
+    }
+    await buyChest()
+    toast({ title: 'Chest purchased', description: `-${formatCompact(CHEST_COST)} coins · +1 Chest`, variant: 'success' })
   }
 
   return (
@@ -96,6 +122,33 @@ export function InventoryScreen() {
         </span>
         {!opening && <ChevronRight className="h-5 w-5 transition-transform duration-150 group-hover:translate-x-0.5" />}
       </button>
+
+      {/* Coin shop — gives coins a purpose */}
+      <section className="flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-medium">Coin Shop</h2>
+          <span className="flex items-center gap-1.5 font-mono text-xs text-muted-foreground tnum">
+            <PixelSprite name="coin" size={14} />
+            {formatCompact(coins)}
+          </span>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <ShopCard
+            sprite="key"
+            label="Buy Key"
+            cost={KEY_COST}
+            affordable={coins >= KEY_COST}
+            onBuy={handleBuyKey}
+          />
+          <ShopCard
+            sprite="chest"
+            label="Buy Chest"
+            cost={CHEST_COST}
+            affordable={coins >= CHEST_COST}
+            onBuy={handleBuyChest}
+          />
+        </div>
+      </section>
 
       {/* Grid */}
       <div className="grid grid-cols-2 gap-3">
@@ -134,7 +187,12 @@ export function InventoryScreen() {
           <div className="flex flex-col gap-3">
             <AnimatePresence initial={false}>
               {inventoryItems.slice(0, 1).map((item) => (
-                <ItemRow key={item.id} item={item} onClick={() => setActiveItem(item)} />
+                <ItemRow
+                  key={item.id}
+                  item={item}
+                  equipped={isEquipped(item)}
+                  onClick={() => setActiveItem(item)}
+                />
               ))}
             </AnimatePresence>
           </div>
@@ -172,12 +230,29 @@ export function InventoryScreen() {
             </div>
             <button
               onClick={() => {
-                toast({ title: 'Equipped', description: `${activeItem.name} is now equipped.`, variant: 'success' })
-                setActiveItem(null)
+                const wasEquipped = isEquipped(activeItem)
+                equipItem(activeItem.id)
+                toast({
+                  title: wasEquipped ? 'Unequipped' : 'Equipped',
+                  description: wasEquipped
+                    ? `${activeItem.name} removed from your ${activeItem.slot} slot.`
+                    : `${activeItem.name} is now in your ${activeItem.slot} slot.`,
+                  variant: wasEquipped ? 'info' : 'success',
+                })
               }}
-              className="flex w-full items-center justify-center rounded-lg bg-primary px-5 py-4 text-[15px] font-medium text-primary-foreground transition-transform duration-100 active:scale-[0.99]"
+              className={`flex w-full items-center justify-center gap-1.5 rounded-lg px-5 py-4 text-[15px] font-medium transition-transform duration-100 active:scale-[0.99] ${
+                isEquipped(activeItem)
+                  ? 'border border-border bg-card text-foreground'
+                  : 'bg-primary text-primary-foreground'
+              }`}
             >
-              Equip
+              {isEquipped(activeItem) ? (
+                <>
+                  <Check className="h-4 w-4" /> Equipped · Tap to Unequip
+                </>
+              ) : (
+                'Equip'
+              )}
             </button>
           </div>
         )}
@@ -198,6 +273,7 @@ export function InventoryScreen() {
               <ItemRow
                 key={item.id}
                 item={item}
+                equipped={isEquipped(item)}
                 onClick={() => {
                   setAllOpen(false)
                   setTimeout(() => setActiveItem(item), 250)
@@ -211,7 +287,15 @@ export function InventoryScreen() {
   )
 }
 
-function ItemRow({ item, onClick }: { item: InventoryItem; onClick: () => void }) {
+function ItemRow({
+  item,
+  onClick,
+  equipped = false,
+}: {
+  item: InventoryItem
+  onClick: () => void
+  equipped?: boolean
+}) {
   return (
     <motion.button
       layout
@@ -225,13 +309,55 @@ function ItemRow({ item, onClick }: { item: InventoryItem; onClick: () => void }
         <PixelSprite name={item.sprite} size={22} />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium">{item.name}</p>
+        <div className="flex items-center gap-2">
+          <p className="truncate text-sm font-medium">{item.name}</p>
+          {equipped && (
+            <span className="pixel-label shrink-0 rounded-full border border-border bg-surface px-1.5 py-0.5 text-[8px] text-foreground">
+              Equipped
+            </span>
+          )}
+        </div>
         <p className="pixel-label mt-1.5 truncate text-[9px] text-muted-foreground">
           {item.rarity} · {item.slot}
         </p>
       </div>
       <span className="shrink-0 font-mono text-[11px] text-muted-foreground">{item.unlockedAt}</span>
     </motion.button>
+  )
+}
+
+function ShopCard({
+  sprite,
+  label,
+  cost,
+  affordable,
+  onBuy,
+}: {
+  sprite: SpriteName
+  label: string
+  cost: number
+  affordable: boolean
+  onBuy: () => Promise<void>
+}) {
+  return (
+    <div className="flex flex-col gap-4 rounded-lg border border-border bg-card p-4">
+      <div className="flex items-center justify-between">
+        <PixelSprite name={sprite} size={28} />
+        <span className="flex items-center gap-1 font-mono text-xs font-medium tnum">
+          <PixelSprite name="coin" size={12} />
+          {formatCompact(cost)}
+        </span>
+      </div>
+      <ActionButton
+        onAction={onBuy}
+        disabled={!affordable}
+        loadingText="Buying"
+        successText="Bought"
+        className="h-9 w-full rounded-md bg-primary text-xs font-medium text-primary-foreground disabled:opacity-50"
+      >
+        {label}
+      </ActionButton>
+    </div>
   )
 }
 

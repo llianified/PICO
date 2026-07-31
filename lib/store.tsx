@@ -42,6 +42,10 @@ export type RewardEvent = {
 export type AchievementEvent = { title: string; subtitle: string } | null
 export type QuestReward = { xp: number; keys: number; chests: number }
 
+/** Coins can be spent in the inventory shop to restock keys and chests. */
+export const KEY_COST = 800
+export const CHEST_COST = 2000
+
 export type TabId = 'home' | 'adventure' | 'inventory' | 'wallet' | 'profile'
 
 type StoreValue = {
@@ -78,6 +82,8 @@ type StoreValue = {
   collectionOwned: number
   collectionTotal: number
   inventoryItems: InventoryItem[]
+  /** maps an equipment slot (e.g. "Head") to the equipped item id */
+  equipped: Record<string, string>
 
   // achievements
   achievements: Achievement[]
@@ -108,6 +114,9 @@ type StoreValue = {
   startQuest: (id: string) => Promise<void>
   completeQuest: (id: string) => Promise<QuestReward>
   openChest: () => Promise<RewardEvent>
+  equipItem: (id: string) => void
+  buyKey: () => Promise<void>
+  buyChest: () => Promise<void>
   updateProfile: (data: { name?: string; avatarId?: string }) => void
   setLanguage: (l: string) => void
   setTheme: (t: string) => void
@@ -137,6 +146,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>(initialPaymentMethods)
 
   const [quests, setQuests] = useState<Quest[]>(initialQuests)
+  // Always-fresh snapshot so completeQuest can compute rewards without
+  // running side effects inside a state updater (safe under StrictMode).
+  const questsRef = useRef(quests)
+  questsRef.current = quests
 
   const [chests, setChests] = useState(3)
   const [keys, setKeys] = useState(7)
@@ -146,6 +159,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [collectionOwned, setCollectionOwned] = useState(15)
   const collectionTotal = 48
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>(initialInventoryItems)
+  // Start with the default hat equipped so the equipped state is visible right away.
+  const [equipped, setEquipped] = useState<Record<string, string>>({ Head: 'hat' })
 
   const [achievements, setAchievements] = useState<Achievement[]>(initialAchievements)
 
@@ -270,50 +285,98 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setQuests((prev) => prev.map((q) => (q.id === id ? { ...q, state: 'active' } : q)))
   }, [])
 
+  const grantMoney = useCallback((reward: number, title: string) => {
+    if (!reward) return
+    setBalance((prev) => prev + reward)
+    setTotalEarned((prev) => prev + reward)
+    const tx: Transaction = {
+      id: 'tx' + Date.now() + Math.random().toString(36).slice(2, 6),
+      title,
+      amount: reward,
+      type: 'earn',
+      time: 'Just now',
+      status: 'completed',
+    }
+    setTransactions((prev) => [tx, ...prev])
+  }, [])
+
+  // Rewards scale with a quest's XP value: bigger quests hand out more keys,
+  // and every quest has a chance to drop a treasure chest.
+  const rollQuestReward = (xpValue: number): QuestReward => ({
+    xp: xpValue,
+    keys: xpValue >= 500 ? 2 : 1,
+    chests: Math.random() < (xpValue >= 300 ? 0.5 : 0.25) ? 1 : 0,
+  })
+
+  const applyQuestReward = useCallback(
+    (r: QuestReward, moneyLabel: string) => {
+      if (r.xp) addXp(r.xp)
+      if (r.keys) setKeys((k) => k + r.keys)
+      if (r.chests) setChests((c) => c + r.chests)
+      grantMoney(Math.round(r.xp * 4), moneyLabel)
+      unlockAchievementProgress('adventurer', 1)
+    },
+    [addXp, grantMoney, unlockAchievementProgress],
+  )
+
   const completeQuest = useCallback(
     async (id: string): Promise<QuestReward> => {
       await delay(1400)
-      let earnedXp = 0
-      let reward = 0
-      let keysEarned = 0
-      let chestsEarned = 0
+      const snapshot = questsRef.current
+      const target = snapshot.find((q) => q.id === id)
+      if (!target || target.state === 'done') {
+        return { xp: 0, keys: 0, chests: 0 }
+      }
+
+      const primary = rollQuestReward(target.xpValue)
+
+      // Advance the aggregate "Complete 3 Quests" tracker whenever any other
+      // quest is finished. When it fills up, it auto-completes and pays out.
+      const aggregate = snapshot.find((q) => q.id === 'three')
+      let aggregateCurrent: number | null = null
+      let aggregateCompleted = false
+      if (id !== 'three' && aggregate?.progress && aggregate.state !== 'done') {
+        aggregateCurrent = Math.min(aggregate.progress.total, aggregate.progress.current + 1)
+        aggregateCompleted = aggregateCurrent >= aggregate.progress.total
+      }
+
       setQuests((prev) =>
         prev.map((q) => {
-          if (q.id !== id) return q
-          earnedXp = q.xpValue
-          reward = Math.round(q.xpValue * 4)
-          // Bigger quests hand out more keys, and every quest has a chance
-          // to drop a treasure chest — higher-value quests drop more often.
-          keysEarned = q.xpValue >= 500 ? 2 : 1
-          const chestChance = q.xpValue >= 300 ? 0.5 : 0.25
-          chestsEarned = Math.random() < chestChance ? 1 : 0
-          return {
-            ...q,
-            state: 'done',
-            progress: q.progress ? { ...q.progress, current: q.progress.total } : undefined,
+          if (q.id === id) {
+            return {
+              ...q,
+              state: 'done',
+              progress: q.progress ? { ...q.progress, current: q.progress.total } : undefined,
+            }
           }
+          if (q.id === 'three' && aggregateCurrent !== null && q.progress) {
+            return {
+              ...q,
+              state: aggregateCompleted ? 'done' : q.state,
+              progress: { ...q.progress, current: aggregateCurrent },
+            }
+          }
+          return q
         }),
       )
-      if (earnedXp) addXp(earnedXp)
-      if (keysEarned) setKeys((k) => k + keysEarned)
-      if (chestsEarned) setChests((c) => c + chestsEarned)
-      if (reward) {
-        setBalance((prev) => prev + reward)
-        setTotalEarned((prev) => prev + reward)
-        const tx: Transaction = {
-          id: 'tx' + Date.now(),
-          title: 'Quest Reward',
-          amount: reward,
-          type: 'earn',
-          time: 'Just now',
-          status: 'completed',
-        }
-        setTransactions((prev) => [tx, ...prev])
+
+      applyQuestReward(primary, 'Quest Reward')
+
+      if (aggregateCompleted && aggregate) {
+        const bonus = rollQuestReward(aggregate.xpValue)
+        applyQuestReward(bonus, 'Bonus · Complete 3 Quests')
+        setTimeout(() => {
+          toast({
+            title: 'Bonus reward!',
+            description: `Complete 3 Quests · +${bonus.xp} XP`,
+            variant: 'success',
+          })
+        }, 700)
       }
-      unlockAchievementProgress('adventurer', 1)
-      return { xp: earnedXp, keys: keysEarned, chests: chestsEarned }
+
+      return primary
     },
-    [addXp, unlockAchievementProgress],
+    [applyQuestReward, toast],
   )
 
   const openChest = useCallback(async (): Promise<RewardEvent> => {
@@ -345,6 +408,35 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }
     setRewardEvent(event)
     return event
+  }, [])
+
+  const equipItem = useCallback(
+    (id: string) => {
+      const item = inventoryItems.find((i) => i.id === id)
+      if (!item) return
+      setEquipped((prev) => {
+        // toggle: tapping the equipped item again unequips it
+        if (prev[item.slot] === id) {
+          const next = { ...prev }
+          delete next[item.slot]
+          return next
+        }
+        return { ...prev, [item.slot]: id }
+      })
+    },
+    [inventoryItems],
+  )
+
+  const buyKey = useCallback(async () => {
+    await delay(700)
+    setCoins((c) => c - KEY_COST)
+    setKeys((k) => k + 1)
+  }, [])
+
+  const buyChest = useCallback(async () => {
+    await delay(700)
+    setCoins((c) => c - CHEST_COST)
+    setChests((c) => c + 1)
   }, [])
 
   const updateProfile = useCallback((data: { name?: string; avatarId?: string }) => {
@@ -381,6 +473,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       collectionOwned,
       collectionTotal,
       inventoryItems,
+      equipped,
       achievements,
       language,
       theme,
@@ -402,6 +495,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       startQuest,
       completeQuest,
       openChest,
+      equipItem,
+      buyKey,
+      buyChest,
       updateProfile,
       setLanguage,
       setTheme,
@@ -431,6 +527,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       badges,
       collectionOwned,
       inventoryItems,
+      equipped,
       achievements,
       language,
       theme,
@@ -452,6 +549,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       startQuest,
       completeQuest,
       openChest,
+      equipItem,
+      buyKey,
+      buyChest,
       updateProfile,
       toggleNotifications,
       toggleSound,
