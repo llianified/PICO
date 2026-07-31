@@ -314,9 +314,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const toastId = useRef(0)
   const achievementQueueRef = useRef<{ title: string; subtitle: string }[]>([])
   const achievementTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  // The 300ms gap between two achievements needs its own handle: it must stay
+  // separate from `achievementTimeoutRef` because that ref doubles as the
+  // "queue is draining" flag that stops `unlockAchievementProgress` from
+  // kicking off a second concurrent drain.
+  const achievementGapTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const achievementMountedRef = useRef(true)
 
   // Process next achievement in queue
   const processAchievementQueue = useCallback(() => {
+    if (!achievementMountedRef.current) return
+
     if (achievementQueueRef.current.length === 0) {
       achievementTimeoutRef.current = null
       return
@@ -328,8 +336,21 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     // Show for 2.5s then process next
     achievementTimeoutRef.current = setTimeout(() => {
       setAchievementEvent(null)
-      setTimeout(processAchievementQueue, 300)
+      achievementGapTimeoutRef.current = setTimeout(processAchievementQueue, 300)
     }, 2500)
+  }, [])
+
+  // Cancel any in-flight achievement timers on unmount so neither the 2.5s
+  // display timer nor the 300ms gap timer can call setState after teardown.
+  useEffect(() => {
+    achievementMountedRef.current = true
+    return () => {
+      achievementMountedRef.current = false
+      if (achievementTimeoutRef.current) clearTimeout(achievementTimeoutRef.current)
+      if (achievementGapTimeoutRef.current) clearTimeout(achievementGapTimeoutRef.current)
+      achievementTimeoutRef.current = null
+      achievementGapTimeoutRef.current = null
+    }
   }, [])
 
   const toast = useCallback((t: Omit<Toast, 'id'>) => {
