@@ -284,12 +284,21 @@ function QuestDetail({ quest, onBack }: { quest: Quest; onBack: () => void }) {
         <>
           {quest.progress && quest.progress.current < quest.progress.total ? (
             <button
-              onClick={() => {
+              onClick={async () => {
+                setBusy(true)
+                await new Promise(resolve => setTimeout(resolve, 700))
+                
                 if (quest.id === 'invite') {
                   setShowReferralModal(true)
+                } else if (quest.id === 'login') {
+                  // Login quest: checkin → immediately complete
+                  setQuestProgress(quest.id, quest.progress!.current + 1)
+                  await new Promise(resolve => setTimeout(resolve, 500))
+                  handleComplete()
                 } else {
                   setQuestProgress(quest.id, quest.progress!.current + 1)
                 }
+                setBusy(false)
               }}
               disabled={busy}
               aria-busy={busy}
@@ -297,7 +306,7 @@ function QuestDetail({ quest, onBack }: { quest: Quest; onBack: () => void }) {
             >
               {busy ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin" /> {quest.id === 'invite' ? 'Opening...' : 'Checking in…'}
+                  <Loader2 className="h-4 w-4 animate-spin" /> {quest.id === 'invite' ? 'Opening...' : quest.id === 'login' ? 'Checking in…' : 'Checking in…'}
                 </>
               ) : (
                 <>
