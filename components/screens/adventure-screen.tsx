@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { Check, ChevronLeft, ChevronRight, HelpCircle, Loader2, Play, Compass } from 'lucide-react'
 import { Progress, SegmentedProgress, Tag } from '@/components/primitives'
@@ -113,6 +113,15 @@ function QuestDetail({ quest, onBack }: { quest: Quest; onBack: () => void }) {
   const [busy, setBusy] = useState(false)
   const [xpBurst, setXpBurst] = useState(false)
   const [answers, setAnswers] = useState<Record<string, string>>({})
+  const [hasAutoStarted, setHasAutoStarted] = useState(false)
+
+  // Auto-start quests with progress tracking (like checkin quests)
+  useEffect(() => {
+    if (quest.state !== 'active' && quest.progress && !hasAutoStarted) {
+      startQuest(quest.id)
+      setHasAutoStarted(true)
+    }
+  }, [quest.id, quest.state, quest.progress, hasAutoStarted, startQuest])
 
   const surveyQuestions = quest.survey?.length ? quest.survey : DEFAULT_SURVEY
   const hasSurvey = quest.state === 'active' && !!quest.survey?.length
