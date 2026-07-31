@@ -84,6 +84,8 @@ type StoreValue = {
   inventoryItems: InventoryItem[]
   /** maps an equipment slot (e.g. "Head") to the equipped item id */
   equipped: Record<string, string>
+  /** the resolved inventory items that are currently equipped on the avatar */
+  equippedItems: InventoryItem[]
 
   // achievements
   achievements: Achievement[]
@@ -447,6 +449,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const toggleNotifications = useCallback(() => setNotificationsEnabled((v) => !v), [])
   const toggleSound = useCallback(() => setSoundEnabled((v) => !v), [])
 
+  // Resolve the equipped slot map into the actual inventory items so screens can
+  // reflect equipped gear on the avatar.
+  const equippedItems = useMemo<InventoryItem[]>(
+    () =>
+      Object.values(equipped)
+        .map((id) => inventoryItems.find((i) => i.id === id))
+        .filter((i): i is InventoryItem => Boolean(i)),
+    [equipped, inventoryItems],
+  )
+
   const value = useMemo<StoreValue>(
     () => ({
       tab,
@@ -474,6 +486,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       collectionTotal,
       inventoryItems,
       equipped,
+      equippedItems,
       achievements,
       language,
       theme,
@@ -528,6 +541,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       collectionOwned,
       inventoryItems,
       equipped,
+      equippedItems,
       achievements,
       language,
       theme,
