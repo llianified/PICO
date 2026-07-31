@@ -386,8 +386,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     
     // Calculate all the leveling changes first, then apply them atomically
     setLevelXp((prevXp) => {
+      let xp = prevXp + amount
       setLevel((prevLevel) => {
-        let xp = prevXp + amount
         let lvl = prevLevel
         let needed = xpNeededForLevel(lvl)
         let leveledUp = false
