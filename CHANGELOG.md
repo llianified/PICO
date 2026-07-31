@@ -42,7 +42,10 @@ merged remediation passes. Issue identifiers (`P0-1`, `P1-2`, …) refer to
 
 ### Fixed
 
-- Documentation only; no application code was modified in this pass.
+- P2-2 — The quest detail reward preview no longer inlines a copy of the key-reward
+  formula. It now derives the value from the shared `questKeyReward()` helper and
+  pluralizes "Key"/"Keys" from that value, so the preview cannot drift from what
+  `applyQuestReward` actually grants. Reward values are unchanged.
 
 ### Removed
 

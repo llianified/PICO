@@ -176,9 +176,13 @@ completion callback — see
 [P0-2](./PICO_P0_REMEDIATION.md#p0-2--watch-sponsor-video-pays-out-without-ever-showing-a-video).
 
 **Shared formulas** exist so the reward *preview* and the reward *grant* cannot disagree:
-`questKeyReward(xp)`, `questCoinReward(xp)`, `questMoneyReward(xp)`. The Adventure screen
-currently inlines a copy of the key formula instead of calling it
-([P2-2](./PICO_PRODUCTION_AUDIT.md#p2-2--key-reward-formula-duplicated-inline-instead-of-using-the-shared-helper)).
+`questKeyReward(xp)`, `questCoinReward(xp)`, `questMoneyReward(xp)`. The Adventure screen's
+reward preview calls `questKeyReward` and `questMoneyReward`; it previously inlined a copy
+of the key formula, which was
+[P2-2](./PICO_P2_REMEDIATION.md#p2-2--key-reward-formula-duplicated-inline-instead-of-using-the-shared-helper)
+and is now fixed. The preview still omits coins
+([P2-1](./PICO_PRODUCTION_AUDIT.md#p2-1--quest-reward-preview-omits-coins-that-are-actually-granted),
+open).
 
 Formatting helpers: `formatRp`, `formatCompact`, `formatRelativeTime`.
 

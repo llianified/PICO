@@ -24,9 +24,9 @@ Status as of 2026-08-01. Legend: ✅ Fixed · ⚠️ Mitigated (risk reduced, ro
 |---|---|---|---|---|---|
 | P0 — Critical | 5 | 3 | 2 | 0 | [`PICO_P0_REMEDIATION.md`](./PICO_P0_REMEDIATION.md) |
 | P1 — High | 6 | 3 | 0 | 3 | [`PICO_P1_REMEDIATION.md`](./PICO_P1_REMEDIATION.md) |
-| P2 — Medium | 12 | 2 | 0 | 10 | — |
+| P2 — Medium | 12 | 3 | 0 | 9 | [`PICO_P2_REMEDIATION.md`](./PICO_P2_REMEDIATION.md) |
 | P3 — Low | 12 | 0 | 0 | 12 | — |
-| **Total** | **35** | **8** | **2** | **25** | |
+| **Total** | **35** | **9** | **2** | **24** | |
 
 | Issue | Title | Status | Detail |
 |---|---|---|---|
@@ -41,7 +41,8 @@ Status as of 2026-08-01. Legend: ✅ Fixed · ⚠️ Mitigated (risk reduced, ro
 | P1-4 | Weekly and Event tabs permanently empty | ⬜ Open | — |
 | P1-5 | `processAchievementQueue` type/value drift | ✅ Fixed | [log](./PICO_P1_REMEDIATION.md#p1-5--processachievementqueue-exported-through-context-but-absent-from-storevalue) |
 | P1-6 | Theme setting inert; locked to dark | ⬜ Open | — |
-| P2-1 … P2-9, P2-12 | See [P2 — Medium](#p2--medium) | ⬜ Open | — |
+| P2-1, P2-3 … P2-9, P2-12 | See [P2 — Medium](#p2--medium) | ⬜ Open | — |
+| P2-2 | Key reward formula duplicated inline | ✅ Fixed | [log](./PICO_P2_REMEDIATION.md#p2-2--key-reward-formula-duplicated-inline-instead-of-using-the-shared-helper) |
 | P2-10 | Achievement counters can overrun the total | ✅ Fixed | Incidental — see [appendix](#appendix--documentation-drift-and-stale-findings) |
 | P2-11 | Two parallel "time ago" implementations | ✅ Fixed | Incidental — see [appendix](#appendix--documentation-drift-and-stale-findings) |
 | P3-1 … P3-12 | See [P3 — Low](#p3--low) | ⬜ Open | P3-1 partly obsolete — see [appendix](#appendix--documentation-drift-and-stale-findings) |
@@ -219,6 +220,8 @@ Everything below is real and worth fixing, but items P0-2 and P0-3 in particular
 - **Risk:** Coins feel arbitrary; the shop's purpose is obscured.
 
 ### P2-2 · Key reward formula duplicated inline instead of using the shared helper
+
+> **Status — ✅ Fixed, 2026-08-01.** The quest detail screen now derives `keyReward` from `questKeyReward(quest.xpValue)` and pluralizes from that value, so the preview cannot drift from what `applyQuestReward` grants. Reward values are unchanged (500 XP → 2 Keys, below 500 XP → 1 Key), verified in the browser at 384×639. The original finding is preserved below.
 
 - **Files:** `components/screens/adventure-screen.tsx:245-247` vs `lib/mock-data.ts:277-279`
 - **Root cause:** The JSX inlines `quest.xpValue >= 500 ? 2 : 1` — a copy of `questKeyReward()`. The file's own comment says these helpers exist "so the numbers always agree."
